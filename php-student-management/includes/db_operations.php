@@ -1006,7 +1006,7 @@ function markMessageAsRead($id) {
  */
 function getUnreadMessageCount($userId) {
     $db = getDB();
-    $stmt = $db->prepare("SELECT COUNT(*) FROM messages WHERE recipient_id = ? AND is_read = 0");
+    $stmt = $db->prepare("SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND is_read = 0");
     $stmt->execute([$userId]);
     return $stmt->fetchColumn();
 }
