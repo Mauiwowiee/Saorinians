@@ -1002,13 +1002,227 @@ function markMessageAsRead($id) {
 }
 
 /**
- * Get unread message count
+ * Get unread message count for user
  */
 function getUnreadMessageCount($userId) {
     $db = getDB();
     $stmt = $db->prepare("SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND is_read = 0");
     $stmt->execute([$userId]);
     return $stmt->fetchColumn();
+}
+
+// ==================== GRADING OPERATIONS ====================
+
+/**
+ * Create grading period
+ */
+function createGradingPeriod($sectionId, $periodName, $startDate, $endDate, $status = 'active') {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO grading_periods (section_id, period_name, start_date, end_date, status) 
+                          VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([$sectionId, $periodName, $startDate, $endDate, $status]);
+    return $db->lastInsertId();
+}
+
+/**
+ * Get grading periods by section
+ */
+function getGradingPeriods($sectionId) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM grading_periods WHERE section_id = ? ORDER BY period_name");
+    $stmt->execute([$sectionId]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Create grade component (e.g., attendance, quizzes, tests)
+ */
+function createGradeComponent($sectionId, $componentName, $weight, $description = null) {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO grade_components (section_id, component_name, weight, description) 
+                          VALUES (?, ?, ?, ?)");
+    $stmt->execute([$sectionId, $componentName, $weight, $description]);
+    return $db->lastInsertId();
+}
+
+/**
+ * Get grade components for section
+ */
+function getGradeComponents($sectionId) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM grade_components WHERE section_id = ? ORDER BY component_name");
+    $stmt->execute([$sectionId]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Validate component weights sum to 100
+ */
+function validateComponentWeights($sectionId) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT COALESCE(SUM(weight), 0) as total FROM grade_components WHERE section_id = ?");
+    $stmt->execute([$sectionId]);
+    $result = $stmt->fetch();
+    return $result['total'] == 100;
+}
+
+/**
+ * Record grade for student
+ */
+function recordGrade($sectionId, $studentId, $periodId, $componentId, $score) {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO student_grades (section_id, student_id, period_id, component_id, score) 
+                          VALUES (?, ?, ?, ?, ?)
+                          ON DUPLICATE KEY UPDATE score = ?, updated_at = NOW()");
+    $stmt->execute([$sectionId, $studentId, $periodId, $componentId, $score, $score]);
+    return $db->lastInsertId();
+}
+
+/**
+ * Get student grades for period
+ */
+function getStudentGradesByPeriod($studentId, $sectionId, $periodId) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT sg.*, gc.component_name, gc.weight 
+                          FROM student_grades sg
+                          JOIN grade_components gc ON sg.component_id = gc.id
+                          WHERE sg.student_id = ? AND sg.section_id = ? AND sg.period_id = ?
+                          ORDER BY gc.component_name");
+    $stmt->execute([$studentId, $sectionId, $periodId]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Calculate weighted quarter grade
+ */
+function calculateQuarterGrade($sectionId, $studentId, $periodId) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT SUM(sg.score * gc.weight / 100) as weighted_score
+                          FROM student_grades sg
+                          JOIN grade_components gc ON sg.component_id = gc.id
+                          WHERE sg.section_id = ? AND sg.student_id = ? AND sg.period_id = ?");
+    $stmt->execute([$sectionId, $studentId, $periodId]);
+    $result = $stmt->fetch();
+    return round($result['weighted_score'] ?? 0, 2);
+}
+
+/**
+ * Get all grades for a section period
+ */
+function getGradesForPeriod($sectionId, $periodId) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT DISTINCT u.id, u.full_name
+                          FROM enrollments e
+                          JOIN users u ON e.student_id = u.id
+                          WHERE e.section_id = ? AND e.status = 'enrolled'
+                          ORDER BY u.full_name");
+    $stmt->execute([$sectionId]);
+    $students = $stmt->fetchAll();
+    
+    $grades = [];
+    foreach ($students as $student) {
+        $grades[$student['id']] = [
+            'name' => $student['full_name'],
+            'components' => getStudentGradesByPeriod($student['id'], $sectionId, $periodId),
+            'quarter_grade' => calculateQuarterGrade($sectionId, $student['id'], $periodId)
+        ];
+    }
+    return $grades;
+}
+
+// ==================== ENHANCED ATTENDANCE OPERATIONS ====================
+
+/**
+ * Mark attendance with undo history
+ */
+function markAttendanceWithUndo($sectionId, $studentId, $date, $status, $markedBy, $remarks = null) {
+    $db = getDB();
+    try {
+        $db->beginTransaction();
+        
+        // Save previous status for undo
+        $stmt = $db->prepare("SELECT status FROM attendance WHERE section_id = ? AND student_id = ? AND attendance_date = ?");
+        $stmt->execute([$sectionId, $studentId, $date]);
+        $previous = $stmt->fetch();
+        $previousStatus = $previous ? $previous['status'] : null;
+        
+        // Mark attendance
+        $stmt = $db->prepare("INSERT INTO attendance (section_id, student_id, attendance_date, status, marked_by, remarks) 
+                              VALUES (?, ?, ?, ?, ?, ?)
+                              ON DUPLICATE KEY UPDATE status = ?, remarks = ?, marked_by = ?, updated_at = NOW()");
+        $stmt->execute([$sectionId, $studentId, $date, $status, $markedBy, $remarks, $status, $remarks, $markedBy]);
+        
+        // Record in undo history
+        $stmt = $db->prepare("INSERT INTO attendance_undo_history (section_id, student_id, attendance_date, previous_status, new_status, changed_by) 
+                              VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$sectionId, $studentId, $date, $previousStatus, $status, $markedBy]);
+        
+        $db->commit();
+        return true;
+    } catch (Exception $e) {
+        $db->rollBack();
+        throw $e;
+    }
+}
+
+/**
+ * Undo last attendance change
+ */
+function undoLastAttendanceChange($sectionId, $studentId, $date, $changedBy) {
+    $db = getDB();
+    try {
+        $db->beginTransaction();
+        
+        // Get last change
+        $stmt = $db->prepare("SELECT * FROM attendance_undo_history 
+                              WHERE section_id = ? AND student_id = ? AND attendance_date = ?
+                              ORDER BY changed_at DESC LIMIT 1");
+        $stmt->execute([$sectionId, $studentId, $date]);
+        $lastChange = $stmt->fetch();
+        
+        if (!$lastChange) {
+            throw new Exception("No undo history found");
+        }
+        
+        // Revert to previous status
+        if ($lastChange['previous_status']) {
+            $stmt = $db->prepare("UPDATE attendance SET status = ? WHERE section_id = ? AND student_id = ? AND attendance_date = ?");
+            $stmt->execute([$lastChange['previous_status'], $sectionId, $studentId, $date]);
+        }
+        
+        // Record the undo action
+        $stmt = $db->prepare("INSERT INTO attendance_undo_history (section_id, student_id, attendance_date, previous_status, new_status, changed_by) 
+                              VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$sectionId, $studentId, $date, $lastChange['new_status'], $lastChange['previous_status'], $changedBy]);
+        
+        $db->commit();
+        return true;
+    } catch (Exception $e) {
+        $db->rollBack();
+        throw $e;
+    }
+}
+
+/**
+ * Get attendance summary with statistics
+ */
+function getAttendanceSummaryWithStats($sectionId) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT u.id, u.full_name,
+                          SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as present_count,
+                          SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as absent_count,
+                          SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late_count,
+                          SUM(CASE WHEN a.status = 'excused' THEN 1 ELSE 0 END) as excused_count,
+                          COUNT(a.id) as total_classes,
+                          ROUND(SUM(CASE WHEN a.status IN ('present', 'late') THEN 1 ELSE 0 END) / COUNT(a.id) * 100, 2) as attendance_rate
+                          FROM enrollments e
+                          JOIN users u ON e.student_id = u.id
+                          LEFT JOIN attendance a ON a.student_id = u.id AND a.section_id = e.section_id
+                          WHERE e.section_id = ? AND e.status = 'enrolled'
+                          GROUP BY u.id, u.full_name
+                          ORDER BY u.full_name");
+    $stmt->execute([$sectionId]);
+    return $stmt->fetchAll();
 }
 
 /**
