@@ -117,9 +117,14 @@ initSession();
                             <li role="none"><a class="dropdown-item" href="<?= BASE_URL ?>modules/teacher/attendance_report.php" role="menuitem">
                                 <i class="bi bi-graph-up me-2" aria-hidden="true"></i>Attendance Report
                             </a></li>
-                            <li role="none"><a class="dropdown-item" href="<?= BASE_URL ?>modules/teacher/grades.php" role="menuitem">
-                                <i class="bi bi-card-checklist me-2" aria-hidden="true"></i>Grades
+                            <li role="none"><hr class="dropdown-divider" role="separator"></li>
+                            <li role="none"><a class="dropdown-item" href="<?= BASE_URL ?>modules/teacher/manage_grades.php" role="menuitem">
+                                <i class="bi bi-gear me-2" aria-hidden="true"></i>Configure Grades
                             </a></li>
+                            <li role="none"><a class="dropdown-item" href="<?= BASE_URL ?>modules/teacher/enter_grades.php" role="menuitem">
+                                <i class="bi bi-pencil-square me-2" aria-hidden="true"></i>Enter Grades
+                            </a></li>
+                            <li role="none"><hr class="dropdown-divider" role="separator"></li>
                             <li role="none"><a class="dropdown-item" href="<?= BASE_URL ?>modules/teacher/assignments.php" role="menuitem">
                                 <i class="bi bi-file-earmark-text me-2" aria-hidden="true"></i>Assignments
                             </a></li>
@@ -145,8 +150,8 @@ initSession();
                             <li role="none"><a class="dropdown-item" href="<?= BASE_URL ?>modules/student/my_courses.php" role="menuitem">
                                 <i class="bi bi-journal-bookmark me-2" aria-hidden="true"></i>My Courses
                             </a></li>
-                            <li role="none"><a class="dropdown-item" href="<?= BASE_URL ?>modules/student/my_grades.php" role="menuitem">
-                                <i class="bi bi-card-checklist me-2" aria-hidden="true"></i>My Grades
+                            <li role="none"><a class="dropdown-item" href="<?= BASE_URL ?>modules/student/grade_report.php" role="menuitem">
+                                <i class="bi bi-graph-up me-2" aria-hidden="true"></i>My Grades
                             </a></li>
                             <li role="none"><a class="dropdown-item" href="<?= BASE_URL ?>modules/student/my_attendance.php" role="menuitem">
                                 <i class="bi bi-calendar-check me-2" aria-hidden="true"></i>My Attendance
