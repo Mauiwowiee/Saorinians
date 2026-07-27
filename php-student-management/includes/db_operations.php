@@ -712,20 +712,45 @@ function rejectRegistration($requestId, $adminId, $notes = null) {
 /**
  * Create assessment
  */
-function createAssessment($sectionId, $title, $type, $maxScore, $weight, $dueDate = null) {
+function createAssessment($sectionId, $title, $type, $maxScore, $weight, $dueDate = null, $component = null, $gradingPeriodId = null) {
     $db = getDB();
-    $stmt = $db->prepare("INSERT INTO assessments (section_id, title, type, max_score, weight, due_date) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$sectionId, $title, $type, $maxScore, $weight, $dueDate]);
+    // Derive the component from the legacy type when not supplied
+    if ($component === null) {
+        $component = mapTypeToComponent($type);
+    }
+    $stmt = $db->prepare("INSERT INTO assessments (section_id, title, type, component, grading_period_id, max_score, weight, due_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$sectionId, $title, $type, $component, $gradingPeriodId ?: null, $maxScore, $weight, $dueDate]);
     return $db->lastInsertId();
 }
 
 /**
- * Get assessments by section
+ * Map a legacy assessment type to a grade component
  */
-function getAssessmentsBySection($sectionId) {
+function mapTypeToComponent($type) {
+    switch ($type) {
+        case 'exam':
+            return 'tests';
+        case 'assignment':
+        case 'project':
+            return 'modules';
+        case 'quiz':
+        default:
+            return 'quizzes';
+    }
+}
+
+/**
+ * Get assessments by section, optionally filtered by grading period
+ */
+function getAssessmentsBySection($sectionId, $gradingPeriodId = null) {
     $db = getDB();
-    $stmt = $db->prepare("SELECT * FROM assessments WHERE section_id = ? ORDER BY due_date DESC, created_at DESC");
-    $stmt->execute([$sectionId]);
+    if ($gradingPeriodId) {
+        $stmt = $db->prepare("SELECT * FROM assessments WHERE section_id = ? AND grading_period_id = ? ORDER BY due_date DESC, created_at DESC");
+        $stmt->execute([$sectionId, $gradingPeriodId]);
+    } else {
+        $stmt = $db->prepare("SELECT * FROM assessments WHERE section_id = ? ORDER BY due_date DESC, created_at DESC");
+        $stmt->execute([$sectionId]);
+    }
     return $stmt->fetchAll();
 }
 
@@ -746,10 +771,13 @@ function getAssessmentById($id) {
 /**
  * Update assessment
  */
-function updateAssessment($id, $title, $type, $maxScore, $weight, $dueDate) {
+function updateAssessment($id, $title, $type, $maxScore, $weight, $dueDate, $component = null, $gradingPeriodId = null) {
     $db = getDB();
-    $stmt = $db->prepare("UPDATE assessments SET title = ?, type = ?, max_score = ?, weight = ?, due_date = ? WHERE id = ?");
-    return $stmt->execute([$title, $type, $maxScore, $weight, $dueDate, $id]);
+    if ($component === null) {
+        $component = mapTypeToComponent($type);
+    }
+    $stmt = $db->prepare("UPDATE assessments SET title = ?, type = ?, component = ?, grading_period_id = ?, max_score = ?, weight = ?, due_date = ? WHERE id = ?");
+    return $stmt->execute([$title, $type, $component, $gradingPeriodId ?: null, $maxScore, $weight, $dueDate, $id]);
 }
 
 /**
@@ -788,14 +816,23 @@ function getScoresForAssessment($assessmentId) {
 /**
  * Get student's scores for a section
  */
-function getStudentScoresBySection($studentId, $sectionId) {
+function getStudentScoresBySection($studentId, $sectionId, $gradingPeriodId = null) {
     $db = getDB();
-    $stmt = $db->prepare("SELECT a.*, ss.score, ss.remarks, ss.submitted_at 
-                          FROM assessments a 
-                          LEFT JOIN student_scores ss ON a.id = ss.assessment_id AND ss.student_id = ? 
-                          WHERE a.section_id = ? 
-                          ORDER BY a.due_date DESC");
-    $stmt->execute([$studentId, $sectionId]);
+    if ($gradingPeriodId) {
+        $stmt = $db->prepare("SELECT a.*, ss.score, ss.remarks, ss.submitted_at 
+                              FROM assessments a 
+                              LEFT JOIN student_scores ss ON a.id = ss.assessment_id AND ss.student_id = ? 
+                              WHERE a.section_id = ? AND a.grading_period_id = ? 
+                              ORDER BY a.component, a.due_date DESC");
+        $stmt->execute([$studentId, $sectionId, $gradingPeriodId]);
+    } else {
+        $stmt = $db->prepare("SELECT a.*, ss.score, ss.remarks, ss.submitted_at 
+                              FROM assessments a 
+                              LEFT JOIN student_scores ss ON a.id = ss.assessment_id AND ss.student_id = ? 
+                              WHERE a.section_id = ? 
+                              ORDER BY a.due_date DESC");
+        $stmt->execute([$studentId, $sectionId]);
+    }
     return $stmt->fetchAll();
 }
 
@@ -817,6 +854,363 @@ function calculateStudentGrade($studentId, $sectionId) {
         return round(($result['weighted_score'] / $result['weighted_max']) * 100, 2);
     }
     return null;
+}
+
+// ==================== GRADING PERIOD & WEIGHTED GRADE OPERATIONS ====================
+
+/**
+ * Get all grading periods, optionally for one school year
+ */
+function getGradingPeriods($schoolYear = null) {
+    $db = getDB();
+    if ($schoolYear) {
+        $stmt = $db->prepare("SELECT * FROM grading_periods WHERE school_year = ? ORDER BY period_number");
+        $stmt->execute([$schoolYear]);
+    } else {
+        $stmt = $db->query("SELECT * FROM grading_periods ORDER BY school_year DESC, period_number");
+    }
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get the distinct school years that have grading periods
+ */
+function getSchoolYears() {
+    $db = getDB();
+    $stmt = $db->query("SELECT DISTINCT school_year FROM grading_periods ORDER BY school_year DESC");
+    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+
+/**
+ * Get a single grading period
+ */
+function getGradingPeriodById($id) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM grading_periods WHERE id = ?");
+    $stmt->execute([$id]);
+    return $stmt->fetch();
+}
+
+/**
+ * Get the period flagged active by the admin
+ */
+function getActiveGradingPeriod() {
+    $db = getDB();
+    $stmt = $db->query("SELECT * FROM grading_periods WHERE is_active = 1 ORDER BY school_year DESC, period_number LIMIT 1");
+    return $stmt->fetch();
+}
+
+/**
+ * Get the period whose date range contains today.
+ * Falls back to the admin-flagged active period, then the most recent one.
+ */
+function getCurrentGradingPeriod() {
+    $db = getDB();
+    $stmt = $db->query("SELECT * FROM grading_periods WHERE CURDATE() BETWEEN start_date AND end_date ORDER BY school_year DESC, period_number LIMIT 1");
+    $period = $stmt->fetch();
+    if ($period) {
+        return $period;
+    }
+    $active = getActiveGradingPeriod();
+    if ($active) {
+        return $active;
+    }
+    $stmt = $db->query("SELECT * FROM grading_periods ORDER BY school_year DESC, period_number LIMIT 1");
+    return $stmt->fetch();
+}
+
+/**
+ * Find which grading period a given date falls into
+ */
+function getGradingPeriodForDate($date) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM grading_periods WHERE ? BETWEEN start_date AND end_date ORDER BY school_year DESC, period_number LIMIT 1");
+    $stmt->execute([$date]);
+    return $stmt->fetch();
+}
+
+/**
+ * Create or update a grading period (keyed on school_year + period_number)
+ */
+function saveGradingPeriod($schoolYear, $periodNumber, $name, $startDate, $endDate) {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO grading_periods (school_year, period_number, name, start_date, end_date)
+                          VALUES (?, ?, ?, ?, ?)
+                          ON DUPLICATE KEY UPDATE name = ?, start_date = ?, end_date = ?");
+    return $stmt->execute([
+        $schoolYear, $periodNumber, $name, $startDate, $endDate,
+        $name, $startDate, $endDate
+    ]);
+}
+
+/**
+ * Delete a grading period
+ */
+function deleteGradingPeriod($id) {
+    $db = getDB();
+    $stmt = $db->prepare("DELETE FROM grading_periods WHERE id = ?");
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Mark one period active (clears the flag on all others)
+ */
+function setActiveGradingPeriod($id) {
+    $db = getDB();
+    $db->beginTransaction();
+    try {
+        $db->exec("UPDATE grading_periods SET is_active = 0");
+        $stmt = $db->prepare("UPDATE grading_periods SET is_active = 1 WHERE id = ?");
+        $stmt->execute([$id]);
+        $db->commit();
+        return true;
+    } catch (Exception $e) {
+        $db->rollBack();
+        return false;
+    }
+}
+
+/**
+ * Get a section's component weights, falling back to the config defaults
+ */
+function getSectionWeights($sectionId) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT w_attendance, w_modules, w_quizzes, w_tests FROM section_grade_weights WHERE section_id = ?");
+    $stmt->execute([$sectionId]);
+    $row = $stmt->fetch();
+
+    if ($row) {
+        return [
+            'attendance' => (float) $row['w_attendance'],
+            'modules'    => (float) $row['w_modules'],
+            'quizzes'    => (float) $row['w_quizzes'],
+            'tests'      => (float) $row['w_tests'],
+        ];
+    }
+
+    return [
+        'attendance' => (float) DEFAULT_WEIGHT_ATTENDANCE,
+        'modules'    => (float) DEFAULT_WEIGHT_MODULES,
+        'quizzes'    => (float) DEFAULT_WEIGHT_QUIZZES,
+        'tests'      => (float) DEFAULT_WEIGHT_TESTS,
+    ];
+}
+
+/**
+ * Save a section's component weights. Expects keys:
+ * attendance, modules, quizzes, tests
+ */
+function saveSectionWeights($sectionId, $weights) {
+    $db = getDB();
+    $stmt = $db->prepare("INSERT INTO section_grade_weights (section_id, w_attendance, w_modules, w_quizzes, w_tests)
+                          VALUES (?, ?, ?, ?, ?)
+                          ON DUPLICATE KEY UPDATE w_attendance = ?, w_modules = ?, w_quizzes = ?, w_tests = ?");
+    return $stmt->execute([
+        $sectionId,
+        $weights['attendance'], $weights['modules'], $weights['quizzes'], $weights['tests'],
+        $weights['attendance'], $weights['modules'], $weights['quizzes'], $weights['tests']
+    ]);
+}
+
+/**
+ * Attendance-based component score for one student in one grading period.
+ *
+ * present = 1.0, late = 0.5, absent = 0.0, excused is excluded entirely.
+ * Returns null when no attendance sessions were held (so the component
+ * can be dropped from the weighting instead of scoring zero).
+ */
+function getAttendanceComponentScore($studentId, $sectionId, $periodId) {
+    $period = getGradingPeriodById($periodId);
+    if (!$period) {
+        return null;
+    }
+
+    $db = getDB();
+    $stmt = $db->prepare("SELECT status, COUNT(*) as total
+                          FROM attendance
+                          WHERE student_id = ? AND section_id = ?
+                            AND attendance_date BETWEEN ? AND ?
+                          GROUP BY status");
+    $stmt->execute([$studentId, $sectionId, $period['start_date'], $period['end_date']]);
+
+    $counts = ['present' => 0, 'absent' => 0, 'late' => 0, 'excused' => 0];
+    foreach ($stmt->fetchAll() as $row) {
+        $counts[$row['status']] = (int) $row['total'];
+    }
+
+    // Excused sessions do not count for or against the student
+    $graded = $counts['present'] + $counts['absent'] + $counts['late'];
+    if ($graded === 0) {
+        return null;
+    }
+
+    $earned = ($counts['present'] * ATT_POINTS_PRESENT)
+            + ($counts['late'] * ATT_POINTS_LATE)
+            + ($counts['absent'] * ATT_POINTS_ABSENT);
+
+    return [
+        'percentage' => round(($earned / $graded) * 100, 2),
+        'counts'     => $counts,
+        'sessions'   => $graded,
+    ];
+}
+
+/**
+ * Score for one assessment component (modules/quizzes/tests) in a period.
+ * Only assessments the student actually has a score for are counted.
+ * Returns null when there is nothing to grade yet.
+ */
+function getComponentScore($studentId, $sectionId, $periodId, $component) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT
+                            COALESCE(SUM(ss.score), 0) as earned,
+                            COALESCE(SUM(a.max_score), 0) as possible,
+                            COUNT(ss.id) as scored_count,
+                            (SELECT COUNT(*) FROM assessments a2
+                               WHERE a2.section_id = a.section_id
+                                 AND a2.grading_period_id = ?
+                                 AND a2.component = ?) as total_count
+                          FROM assessments a
+                          INNER JOIN student_scores ss
+                              ON a.id = ss.assessment_id
+                             AND ss.student_id = ?
+                             AND ss.score IS NOT NULL
+                          WHERE a.section_id = ?
+                            AND a.grading_period_id = ?
+                            AND a.component = ?");
+    $stmt->execute([$periodId, $component, $studentId, $sectionId, $periodId, $component]);
+    $row = $stmt->fetch();
+
+    if (!$row || $row['possible'] <= 0) {
+        return null;
+    }
+
+    return [
+        'percentage'   => round(($row['earned'] / $row['possible']) * 100, 2),
+        'earned'       => (float) $row['earned'],
+        'possible'     => (float) $row['possible'],
+        'scored_count' => (int) $row['scored_count'],
+        'total_count'  => (int) $row['total_count'],
+    ];
+}
+
+/**
+ * Calculate a student's weighted grade for one grading period.
+ *
+ * Final = (Attendance x Wa) + (Modules x Wm) + (Quizzes x Wq) + (Tests x Wt)
+ *
+ * Components with no data are dropped and the remaining weights are
+ * re-normalized to 100% so an early-quarter grade is not unfairly low.
+ * The return array flags this via 'normalized'.
+ */
+function calculateQuarterGrade($studentId, $sectionId, $periodId) {
+    $weights = getSectionWeights($sectionId);
+
+    $attendance = getAttendanceComponentScore($studentId, $sectionId, $periodId);
+    $components = [
+        'attendance' => [
+            'percentage' => $attendance ? $attendance['percentage'] : null,
+            'weight'     => $weights['attendance'],
+            'detail'     => $attendance,
+        ],
+    ];
+
+    foreach (['modules', 'quizzes', 'tests'] as $key) {
+        $score = getComponentScore($studentId, $sectionId, $periodId, $key);
+        $components[$key] = [
+            'percentage' => $score ? $score['percentage'] : null,
+            'weight'     => $weights[$key],
+            'detail'     => $score,
+        ];
+    }
+
+    // Total weight of the components that actually have data
+    $activeWeight = 0.0;
+    foreach ($components as $c) {
+        if ($c['percentage'] !== null) {
+            $activeWeight += $c['weight'];
+        }
+    }
+
+    if ($activeWeight <= 0) {
+        return [
+            'components'    => $components,
+            'final'         => null,
+            'letter'        => null,
+            'normalized'    => false,
+            'active_weight' => 0.0,
+            'weights'       => $weights,
+        ];
+    }
+
+    $final = 0.0;
+    foreach ($components as $key => $c) {
+        if ($c['percentage'] === null) {
+            $components[$key]['effective_weight'] = 0.0;
+            $components[$key]['contribution'] = null;
+            continue;
+        }
+        // Re-normalize so the active weights total 100
+        $effective = ($c['weight'] / $activeWeight) * 100;
+        $contribution = $c['percentage'] * ($effective / 100);
+        $components[$key]['effective_weight'] = round($effective, 2);
+        $components[$key]['contribution'] = round($contribution, 2);
+        $final += $contribution;
+    }
+
+    $final = round($final, 2);
+
+    return [
+        'components'    => $components,
+        'final'         => $final,
+        'letter'        => getGradeLetter($final),
+        'normalized'    => abs($activeWeight - 100) > 0.01,
+        'active_weight' => $activeWeight,
+        'weights'       => $weights,
+    ];
+}
+
+/**
+ * Average of every quarter that has data, for one student in one section
+ */
+function calculateSectionFinalGrade($studentId, $sectionId, $schoolYear = null) {
+    $periods = getGradingPeriods($schoolYear);
+    $totals = [];
+
+    foreach ($periods as $period) {
+        $result = calculateQuarterGrade($studentId, $sectionId, $period['id']);
+        if ($result['final'] !== null) {
+            $totals[$period['period_number']] = $result['final'];
+        }
+    }
+
+    if (empty($totals)) {
+        return null;
+    }
+
+    return [
+        'quarters' => $totals,
+        'final'    => round(array_sum($totals) / count($totals), 2),
+    ];
+}
+
+/**
+ * Quarter grades for every student in a section - drives the gradebook table
+ */
+function getSectionQuarterGrades($sectionId, $periodId) {
+    $students = getStudentsBySection($sectionId);
+    $rows = [];
+
+    foreach ($students as $student) {
+        $rows[] = [
+            'student_id'   => $student['id'],
+            'student_name' => $student['full_name'],
+            'username'     => $student['username'],
+            'grade'        => calculateQuarterGrade($student['id'], $sectionId, $periodId),
+        ];
+    }
+
+    return $rows;
 }
 
 // ==================== ASSIGNMENT OPERATIONS ====================

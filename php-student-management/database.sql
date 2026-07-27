@@ -104,17 +104,48 @@ CREATE TABLE IF NOT EXISTS announcements (
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- Grading periods table (quarters of a school year, admin-managed)
+CREATE TABLE IF NOT EXISTS grading_periods (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    school_year VARCHAR(20) NOT NULL,
+    period_number TINYINT NOT NULL,
+    name VARCHAR(30) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    is_active TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_period (school_year, period_number)
+);
+
+-- Per-section grade component weights (teacher editable)
+CREATE TABLE IF NOT EXISTS section_grade_weights (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    section_id INT NOT NULL UNIQUE,
+    w_attendance DECIMAL(5,2) NOT NULL DEFAULT 10.00,
+    w_modules DECIMAL(5,2) NOT NULL DEFAULT 20.00,
+    w_quizzes DECIMAL(5,2) NOT NULL DEFAULT 30.00,
+    w_tests DECIMAL(5,2) NOT NULL DEFAULT 40.00,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
+);
+
 -- Grades/Assessments table
 CREATE TABLE IF NOT EXISTS assessments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     section_id INT NOT NULL,
     title VARCHAR(100) NOT NULL,
     type ENUM('quiz', 'exam', 'assignment', 'project') NOT NULL,
+    component ENUM('modules', 'quizzes', 'tests') NOT NULL DEFAULT 'quizzes',
+    grading_period_id INT NULL,
     max_score DECIMAL(5,2) NOT NULL,
     weight DECIMAL(5,2) DEFAULT 1.00,
     due_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
+    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
+    FOREIGN KEY (grading_period_id) REFERENCES grading_periods(id) ON DELETE SET NULL,
+    INDEX idx_assessment_grading (section_id, grading_period_id, component)
 );
 
 -- Student scores table
@@ -257,3 +288,17 @@ INSERT INTO enrollments (student_id, section_id) VALUES
 -- Insert sample announcement
 INSERT INTO announcements (title, content, target_role, created_by) VALUES 
 ('Welcome to the New Semester', 'Welcome back everyone! Classes begin on Monday.', 'all', 1);
+
+-- Seed the four grading periods for the current school year
+-- School year starts in June: Jun-Dec => YYYY-(YYYY+1), Jan-May => (YYYY-1)-YYYY
+SET @sy_start := IF(MONTH(CURDATE()) >= 6, YEAR(CURDATE()), YEAR(CURDATE()) - 1);
+SET @sy := CONCAT(@sy_start, '-', @sy_start + 1);
+
+INSERT INTO grading_periods (school_year, period_number, name, start_date, end_date, is_active) VALUES
+(@sy, 1, '1st Grading', CONCAT(@sy_start, '-06-01'),     CONCAT(@sy_start, '-08-31'),     1),
+(@sy, 2, '2nd Grading', CONCAT(@sy_start, '-09-01'),     CONCAT(@sy_start, '-11-30'),     0),
+(@sy, 3, '3rd Grading', CONCAT(@sy_start, '-12-01'),     CONCAT(@sy_start + 1, '-02-28'), 0),
+(@sy, 4, '4th Grading', CONCAT(@sy_start + 1, '-03-01'), CONCAT(@sy_start + 1, '-05-31'), 0);
+
+-- Give every section the default grade weights (10/20/30/40)
+INSERT INTO section_grade_weights (section_id) SELECT id FROM sections;

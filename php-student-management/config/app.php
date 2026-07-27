@@ -28,6 +28,30 @@ define('DATETIME_FORMAT', 'Y-m-d H:i:s');
 define('DISPLAY_DATE_FORMAT', 'M d, Y');
 define('DISPLAY_DATETIME_FORMAT', 'M d, Y h:i A');
 
+// ============================================================
+// Grading System Settings
+// ============================================================
+
+// Default component weights (must total 100)
+define('DEFAULT_WEIGHT_ATTENDANCE', 10);
+define('DEFAULT_WEIGHT_MODULES', 20);
+define('DEFAULT_WEIGHT_QUIZZES', 30);
+define('DEFAULT_WEIGHT_TESTS', 40);
+
+// Attendance point values used for the Attendance component.
+// 'excused' is excluded from the denominator instead of being scored.
+define('ATT_POINTS_PRESENT', 1.0);
+define('ATT_POINTS_LATE', 0.5);
+define('ATT_POINTS_ABSENT', 0.0);
+
+// Human-readable labels for the grade components
+define('GRADE_COMPONENTS', [
+    'attendance' => 'Attendance',
+    'modules'    => 'Modules',
+    'quizzes'    => 'Quizzes',
+    'tests'      => 'Tests',
+]);
+
 // Create upload directories if they don't exist
 if (!file_exists(UPLOAD_PATH)) {
     mkdir(UPLOAD_PATH, 0755, true);
