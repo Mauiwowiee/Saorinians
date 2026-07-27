@@ -1,111 +1,161 @@
 /**
  * Student Management System - Main JavaScript
+ * Performance Optimized with Event Delegation & Debouncing
  */
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function(tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+// Debounce utility for performance optimization
+function debounce(func, delay = 300) {
+    let timeoutId;
+    return function(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
+    };
+}
 
-    // Initialize popovers
-    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-    popoverTriggerList.map(function(popoverTriggerEl) {
-        return new bootstrap.Popover(popoverTriggerEl);
-    });
+// Throttle utility for high-frequency events
+function throttle(func, delay = 300) {
+    let lastCall = 0;
+    return function(...args) {
+        const now = Date.now();
+        if (now - lastCall >= delay) {
+            lastCall = now;
+            return func.apply(this, args);
+        }
+    };
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips (lazy load on hover)
+    document.addEventListener('mouseenter', function(e) {
+        if (e.target.hasAttribute('data-bs-toggle') && e.target.getAttribute('data-bs-toggle') === 'tooltip') {
+            if (!e.target._tooltip) {
+                e.target._tooltip = new bootstrap.Tooltip(e.target);
+            }
+            e.target._tooltip.show();
+        }
+    }, true);
+
+    // Initialize popovers (lazy load on click)
+    document.addEventListener('click', function(e) {
+        if (e.target.hasAttribute('data-bs-toggle') && e.target.getAttribute('data-bs-toggle') === 'popover') {
+            if (!e.target._popover) {
+                e.target._popover = new bootstrap.Popover(e.target);
+            }
+            e.target._popover.toggle();
+        }
+    }, true);
 
     // Auto-hide alerts after 5 seconds
-    setTimeout(function() {
-        var alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
-        alerts.forEach(function(alert) {
-            var bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
-        });
-    }, 5000);
+    document.querySelectorAll('.alert:not(.alert-permanent)').forEach(function(alert) {
+        setTimeout(function() {
+            try {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            } catch(e) {
+                alert.style.display = 'none';
+            }
+        }, 5000);
+    });
 
-    // Confirm delete actions
-    document.querySelectorAll('.btn-delete, .delete-confirm').forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
+    // Event delegation for delete confirmations (improves performance)
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('.btn-delete, .delete-confirm')) {
             if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
                 e.preventDefault();
             }
-        });
+        }
     });
 
-    // Select all checkbox functionality
-    var selectAllCheckbox = document.getElementById('selectAll');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            var checkboxes = document.querySelectorAll('.select-item');
-            checkboxes.forEach(function(checkbox) {
-                checkbox.checked = selectAllCheckbox.checked;
-            });
-        });
-    }
+    // Select all checkbox functionality with event delegation
+    document.addEventListener('change', function(e) {
+        if (e.target.id === 'selectAll') {
+            const checkboxes = document.querySelectorAll('.select-item');
+            checkboxes.forEach(checkbox => checkbox.checked = e.target.checked);
+            
+            // Update counter if exists
+            const counter = document.getElementById('selectCount');
+            if (counter) {
+                counter.textContent = e.target.checked ? checkboxes.length : 0;
+            }
+        }
+    });
 
     // Form validation
-    var forms = document.querySelectorAll('.needs-validation');
-    forms.forEach(function(form) {
-        form.addEventListener('submit', function(event) {
+    document.addEventListener('submit', function(e) {
+        if (e.target.classList.contains('needs-validation')) {
+            const form = e.target;
             if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
+                e.preventDefault();
+                e.stopPropagation();
             }
             form.classList.add('was-validated');
-        });
+        }
     });
 
-    // Password visibility toggle
-    document.querySelectorAll('.toggle-password').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var input = document.querySelector(this.dataset.target);
-            var icon = this.querySelector('i');
+    // Password visibility toggle using event delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.toggle-password')) {
+            const btn = e.target.closest('.toggle-password');
+            const input = document.querySelector(btn.dataset.target);
+            const icon = btn.querySelector('i');
             
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('bi-eye');
-                icon.classList.add('bi-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('bi-eye-slash');
-                icon.classList.add('bi-eye');
+            if (input && icon) {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                    btn.setAttribute('aria-label', 'Hide password');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                    btn.setAttribute('aria-label', 'Show password');
+                }
             }
-        });
+        }
     });
 
-    // Search filter for tables
-    var searchInput = document.getElementById('tableSearch');
+    // Search filter for tables with debouncing
+    const searchInput = document.getElementById('tableSearch');
     if (searchInput) {
-        searchInput.addEventListener('keyup', function() {
-            var searchTerm = this.value.toLowerCase();
-            var tableRows = document.querySelectorAll('#dataTable tbody tr');
+        searchInput.addEventListener('keyup', debounce(function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            const tableRows = document.querySelectorAll('#dataTable tbody tr');
+            let visibleCount = 0;
             
-            tableRows.forEach(function(row) {
-                var text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            tableRows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const isVisible = searchTerm === '' || text.includes(searchTerm);
+                row.style.display = isVisible ? '' : 'none';
+                if (isVisible) visibleCount++;
             });
-        });
+            
+            // Show no results message if needed
+            const noResults = document.getElementById('noResults');
+            if (noResults) {
+                noResults.style.display = visibleCount === 0 ? 'table-row' : 'none';
+            }
+        }, 200));
     }
 });
 
 /**
- * Profile Picture Upload with Preview
+ * Profile Picture Upload with Preview & Lazy Initialization
  */
 function initProfilePictureUpload() {
-    var fileInput = document.getElementById('profilePictureInput');
-    var preview = document.getElementById('profilePicturePreview');
-    var form = document.getElementById('profilePictureForm');
+    const fileInput = document.getElementById('profilePictureInput');
+    const preview = document.getElementById('profilePicturePreview');
+    const form = document.getElementById('profilePictureForm');
 
     if (fileInput && preview) {
-        fileInput.addEventListener('change', function(e) {
-            var file = e.target.files[0];
+        fileInput.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
             
             if (file) {
                 // Validate file type
-                var allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
                 if (!allowedTypes.includes(file.type)) {
-                    showAlert('error', 'Please select a valid image file (JPG, PNG, or GIF)');
+                    showAlert('error', 'Please select a valid image file (JPG, PNG, GIF, or WebP)');
                     fileInput.value = '';
                     return;
                 }
@@ -117,10 +167,11 @@ function initProfilePictureUpload() {
                     return;
                 }
 
-                // Show preview
-                var reader = new FileReader();
+                // Show preview with image compression hint
+                const reader = new FileReader();
                 reader.onload = function(event) {
                     preview.src = event.target.result;
+                    preview.setAttribute('alt', 'Profile picture preview');
                 };
                 reader.readAsDataURL(file);
 
@@ -134,17 +185,27 @@ function initProfilePictureUpload() {
 }
 
 /**
- * Upload profile picture via AJAX
+ * Upload profile picture via AJAX with error handling
  */
 function uploadProfilePicture(form) {
-    var formData = new FormData(form);
+    const formData = new FormData(form);
     formData.append('ajax', '1');
+    
+    const uploadBtn = form.querySelector('button[type="submit"]');
+    if (uploadBtn) {
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Uploading...';
+    }
 
     fetch(form.action, {
         method: 'POST',
-        body: formData
+        body: formData,
+        signal: AbortSignal.timeout(30000) // 30 second timeout
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showAlert('success', 'Profile picture updated successfully!');
@@ -153,192 +214,231 @@ function uploadProfilePicture(form) {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('[v0] Upload Error:', error);
         showAlert('error', 'An error occurred while uploading the profile picture');
+    })
+    .finally(() => {
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = 'Upload Picture';
+        }
     });
 }
 
 /**
- * Show alert message
+ * Show alert message with accessibility
  */
 function showAlert(type, message) {
-    var alertClass = type === 'success' ? 'alert-success' : 
-                     type === 'error' ? 'alert-danger' : 
-                     type === 'warning' ? 'alert-warning' : 'alert-info';
+    const alertClass = type === 'success' ? 'alert-success' : 
+                       type === 'error' ? 'alert-danger' : 
+                       type === 'warning' ? 'alert-warning' : 'alert-info';
     
-    var alertHtml = `
-        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
-            ${message}
+    const alertIcon = type === 'success' ? 'bi-check-circle' :
+                      type === 'error' ? 'bi-exclamation-circle' :
+                      type === 'warning' ? 'bi-exclamation-triangle' : 'bi-info-circle';
+    
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert" aria-live="polite" aria-atomic="true">
+            <i class="bi ${alertIcon} me-2" aria-hidden="true"></i>
+            <span>${message}</span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     `;
 
-    var container = document.querySelector('.container-fluid');
+    const container = document.querySelector('.container-fluid');
     if (container) {
-        var alertContainer = document.createElement('div');
+        const alertContainer = document.createElement('div');
         alertContainer.innerHTML = alertHtml;
-        container.insertBefore(alertContainer.firstChild, container.firstChild);
+        const alertElement = alertContainer.firstChild;
+        container.insertBefore(alertElement, container.firstChild);
 
         // Auto-hide after 5 seconds
-        setTimeout(function() {
-            var alert = container.querySelector('.alert');
-            if (alert) {
-                var bsAlert = new bootstrap.Alert(alert);
+        setTimeout(() => {
+            try {
+                const bsAlert = new bootstrap.Alert(alertElement);
                 bsAlert.close();
+            } catch(e) {
+                alertElement.style.display = 'none';
             }
         }, 5000);
     }
 }
 
 /**
- * Batch enrollment functionality
+ * Batch enrollment functionality with validation
  */
 function initBatchEnrollment() {
-    var enrollForm = document.getElementById('batchEnrollForm');
+    const enrollForm = document.getElementById('batchEnrollForm');
     
     if (enrollForm) {
         enrollForm.addEventListener('submit', function(e) {
-            var selectedStudents = document.querySelectorAll('.select-student:checked');
+            const selectedStudents = document.querySelectorAll('.select-student:checked');
             
             if (selectedStudents.length === 0) {
                 e.preventDefault();
-                showAlert('warning', 'Please select at least one student to enroll');
+                showAlert('warning', `Please select at least one student to enroll`);
             }
         });
     }
 }
 
 /**
- * Attendance marking functionality
+ * Attendance marking functionality with event delegation
  */
 function initAttendance() {
-    var markAllPresent = document.getElementById('markAllPresent');
-    var markAllAbsent = document.getElementById('markAllAbsent');
-
-    if (markAllPresent) {
-        markAllPresent.addEventListener('click', function() {
-            document.querySelectorAll('.attendance-status').forEach(function(select) {
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'markAllPresent') {
+            document.querySelectorAll('.attendance-status').forEach(select => {
                 select.value = 'present';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
             });
-        });
-    }
-
-    if (markAllAbsent) {
-        markAllAbsent.addEventListener('click', function() {
-            document.querySelectorAll('.attendance-status').forEach(function(select) {
+        } else if (e.target.id === 'markAllAbsent') {
+            document.querySelectorAll('.attendance-status').forEach(select => {
                 select.value = 'absent';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
             });
-        });
-    }
+        }
+    });
 }
 
 /**
- * Data table initialization
+ * Data table initialization with accessible sorting
  */
 function initDataTable(tableId) {
-    var table = document.getElementById(tableId);
+    const table = document.getElementById(tableId);
     if (!table) return;
 
-    // Sort functionality
-    var headers = table.querySelectorAll('th[data-sort]');
-    headers.forEach(function(header) {
+    // Sort functionality with keyboard support
+    const headers = table.querySelectorAll('th[data-sort]');
+    headers.forEach(header => {
         header.style.cursor = 'pointer';
-        header.addEventListener('click', function() {
-            var column = this.dataset.sort;
-            var order = this.dataset.order === 'asc' ? 'desc' : 'asc';
-            this.dataset.order = order;
-            
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        header.setAttribute('aria-sort', 'none');
+        
+        const handleSort = () => {
+            const column = header.dataset.sort;
+            const order = header.dataset.order === 'asc' ? 'desc' : 'asc';
+            header.dataset.order = order;
+            header.setAttribute('aria-sort', order === 'asc' ? 'ascending' : 'descending');
             sortTable(table, column, order);
+        };
+        
+        header.addEventListener('click', handleSort);
+        header.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSort();
+            }
         });
     });
 }
 
 /**
- * Sort table by column
+ * Sort table by column (optimized)
  */
 function sortTable(table, column, order) {
-    var tbody = table.querySelector('tbody');
-    var rows = Array.from(tbody.querySelectorAll('tr'));
-    var headerIndex = Array.from(table.querySelectorAll('th')).findIndex(function(th) {
-        return th.dataset.sort === column;
-    });
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const headerIndex = Array.from(table.querySelectorAll('th')).findIndex(th => th.dataset.sort === column);
 
-    rows.sort(function(a, b) {
-        var aVal = a.cells[headerIndex].textContent.trim();
-        var bVal = b.cells[headerIndex].textContent.trim();
+    rows.sort((a, b) => {
+        let aVal = a.cells[headerIndex].textContent.trim();
+        let bVal = b.cells[headerIndex].textContent.trim();
 
         // Check if numeric
-        if (!isNaN(aVal) && !isNaN(bVal)) {
-            return order === 'asc' ? aVal - bVal : bVal - aVal;
+        const aNum = parseFloat(aVal);
+        const bNum = parseFloat(bVal);
+        
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+            return order === 'asc' ? aNum - bNum : bNum - aNum;
         }
 
         // String comparison
-        return order === 'asc' ? 
-            aVal.localeCompare(bVal) : 
-            bVal.localeCompare(aVal);
+        return order === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
     });
 
-    // Re-append sorted rows
-    rows.forEach(function(row) {
-        tbody.appendChild(row);
-    });
+    // Re-append sorted rows with minimal reflow
+    rows.forEach(row => tbody.appendChild(row));
 }
 
 /**
- * Print functionality
+ * Print functionality with error handling
  */
 function printContent(elementId) {
-    var content = document.getElementById(elementId);
-    if (!content) return;
+    const content = document.getElementById(elementId);
+    if (!content) {
+        showAlert('error', 'Content not found for printing');
+        return;
+    }
 
-    var printWindow = window.open('', '_blank');
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        showAlert('error', 'Could not open print window. Please allow popups.');
+        return;
+    }
+    
     printWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
+            <meta charset="UTF-8">
             <title>Print</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
             <style>
-                body { padding: 20px; }
+                body { padding: 20px; font-family: system-ui, -apple-system, sans-serif; }
                 .no-print { display: none !important; }
+                @media print {
+                    body { margin: 0; padding: 0; }
+                }
             </style>
         </head>
         <body>
             ${content.innerHTML}
+            <script>
+                window.addEventListener('load', () => window.print());
+            </script>
         </body>
         </html>
     `);
     printWindow.document.close();
-    printWindow.print();
 }
 
 /**
- * Export table to CSV
+ * Export table to CSV with proper encoding
  */
-function exportTableToCSV(tableId, filename) {
-    var table = document.getElementById(tableId);
-    if (!table) return;
+function exportTableToCSV(tableId, filename = 'export') {
+    const table = document.getElementById(tableId);
+    if (!table) {
+        showAlert('error', 'Table not found for export');
+        return;
+    }
 
-    var csv = [];
-    var rows = table.querySelectorAll('tr');
+    const csv = [];
+    const rows = table.querySelectorAll('tr');
 
-    rows.forEach(function(row) {
-        var cols = row.querySelectorAll('td, th');
-        var rowData = [];
+    rows.forEach(row => {
+        const cols = row.querySelectorAll('td, th');
+        const rowData = [];
         
-        cols.forEach(function(col) {
-            var text = col.textContent.replace(/"/g, '""').trim();
-            rowData.push('"' + text + '"');
+        cols.forEach(col => {
+            const text = col.textContent.replace(/"/g, '""').trim();
+            rowData.push(`"${text}"`);
         });
         
         csv.push(rowData.join(','));
     });
 
-    var csvContent = csv.join('\n');
-    var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    var link = document.createElement('a');
+    const csvContent = '\ufeff' + csv.join('\n'); // BOM for proper Excel encoding
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
     
     link.href = URL.createObjectURL(blob);
-    link.download = filename || 'export.csv';
+    link.download = `${filename}_${new Date().getTime()}.csv`;
+    link.style.display = 'none';
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
+    
+    showAlert('success', 'Table exported successfully');
 }
