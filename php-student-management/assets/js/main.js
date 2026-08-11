@@ -217,6 +217,7 @@ function initAttendance() {
 
     if (markAllPresent) {
         markAllPresent.addEventListener('click', function() {
+            if (!window.confirm('Mark every enrolled student present?')) return;
             document.querySelectorAll('.attendance-status').forEach(function(select) {
                 select.value = 'present';
             });
@@ -225,6 +226,7 @@ function initAttendance() {
 
     if (markAllAbsent) {
         markAllAbsent.addEventListener('click', function() {
+            if (!window.confirm('Mark every enrolled student absent?')) return;
             document.querySelectorAll('.attendance-status').forEach(function(select) {
                 select.value = 'absent';
             });

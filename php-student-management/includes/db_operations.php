@@ -712,10 +712,10 @@ function rejectRegistration($requestId, $adminId, $notes = null) {
 /**
  * Create assessment
  */
-function createAssessment($sectionId, $title, $type, $maxScore, $weight, $dueDate = null) {
+function createAssessment($sectionId, $title, $type, $maxScore, $weight, $dueDate = null, $gradingPeriod = 1) {
     $db = getDB();
-    $stmt = $db->prepare("INSERT INTO assessments (section_id, title, type, max_score, weight, due_date) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$sectionId, $title, $type, $maxScore, $weight, $dueDate]);
+    $stmt = $db->prepare("INSERT INTO assessments (section_id, title, type, grading_period, max_score, weight, due_date) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$sectionId, $title, $type, $gradingPeriod, $maxScore, $weight, $dueDate]);
     return $db->lastInsertId();
 }
 
@@ -802,21 +802,51 @@ function getStudentScoresBySection($studentId, $sectionId) {
 /**
  * Calculate student's grade for section
  */
-function calculateStudentGrade($studentId, $sectionId) {
+function getGradingPeriods() {
+    return [1 => '1st Grading', 2 => '2nd Grading', 3 => '3rd Grading', 4 => '4th Grading'];
+}
+
+function getAttendancePercentage($studentId, $sectionId, $gradingPeriod = null) {
     $db = getDB();
-    $stmt = $db->prepare("SELECT 
-                            COALESCE(SUM(ss.score * a.weight), 0) as weighted_score,
-                            COALESCE(SUM(a.max_score * a.weight), 0) as weighted_max
-                          FROM assessments a
-                          LEFT JOIN student_scores ss ON a.id = ss.assessment_id AND ss.student_id = ?
-                          WHERE a.section_id = ?");
-    $stmt->execute([$studentId, $sectionId]);
-    $result = $stmt->fetch();
-    
-    if ($result['weighted_max'] > 0) {
-        return round(($result['weighted_score'] / $result['weighted_max']) * 100, 2);
+    $sql = "SELECT SUM(a.status IN ('present', 'late', 'excused')) as attended, COUNT(a.id) as total
+            FROM attendance a WHERE a.student_id = ? AND a.section_id = ?";
+    $params = [$studentId, $sectionId];
+    if ($gradingPeriod !== null) {
+        $sql .= " AND MONTH(a.attendance_date) BETWEEN ? AND ?";
+        $start = (($gradingPeriod - 1) * 3) + 1;
+        $params[] = $start;
+        $params[] = $start + 2;
     }
-    return null;
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
+    $result = $stmt->fetch();
+    return ((int)$result['total'] > 0) ? round(((int)$result['attended'] / (int)$result['total']) * 100, 2) : null;
+}
+
+function getStudentGradeBreakdown($studentId, $sectionId, $gradingPeriod = 1) {
+    $db = getDB();
+    $types = ['module' => 20, 'assignment' => 20, 'quiz' => 30, 'test' => 40, 'exam' => 40, 'project' => 20];
+    $breakdown = ['attendance' => getAttendancePercentage($studentId, $sectionId, $gradingPeriod), 'module' => null, 'quiz' => null, 'test' => null, 'overall' => null];
+    foreach (['module', 'quiz', 'test'] as $component) {
+        $dbTypes = $component === 'test' ? ['test', 'exam'] : [$component, $component === 'module' ? 'assignment' : $component];
+        $placeholders = implode(',', array_fill(0, count($dbTypes), '?'));
+        $stmt = $db->prepare("SELECT SUM(ss.score * a.weight) weighted_score, SUM(a.max_score * a.weight) weighted_max FROM assessments a LEFT JOIN student_scores ss ON a.id = ss.assessment_id AND ss.student_id = ? WHERE a.section_id = ? AND a.grading_period = ? AND a.type IN ($placeholders)");
+        $stmt->execute(array_merge([$studentId, $sectionId, $gradingPeriod], $dbTypes));
+        $row = $stmt->fetch();
+        $breakdown[$component] = ($row['weighted_max'] > 0) ? round(($row['weighted_score'] / $row['weighted_max']) * 100, 2) : null;
+    }
+    $weighted = [['attendance', 10], ['module', 20], ['quiz', 30], ['test', 40]];
+    $total = 0; $weight = 0;
+    foreach ($weighted as [$key, $value]) { if ($breakdown[$key] !== null) { $total += $breakdown[$key] * $value; $weight += $value; } }
+    $breakdown['overall'] = $weight > 0 ? round($total / $weight, 2) : null;
+    return $breakdown;
+}
+
+function calculateStudentGrade($studentId, $sectionId, $gradingPeriod = null) {
+    if ($gradingPeriod !== null) return getStudentGradeBreakdown($studentId, $sectionId, $gradingPeriod)['overall'];
+    $grades = [];
+    foreach (array_keys(getGradingPeriods()) as $period) { $grade = calculateStudentGrade($studentId, $sectionId, $period); if ($grade !== null) $grades[] = $grade; }
+    return empty($grades) ? null : round(array_sum($grades) / count($grades), 2);
 }
 
 // ==================== ASSIGNMENT OPERATIONS ====================

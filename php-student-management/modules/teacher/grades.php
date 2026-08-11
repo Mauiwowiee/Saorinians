@@ -38,9 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $type = sanitize($_POST['type'] ?? 'quiz');
                 $maxScore = floatval($_POST['max_score'] ?? 100);
                 $weight = floatval($_POST['weight'] ?? 1);
+                $gradingPeriod = max(1, min(4, intval($_POST['grading_period'] ?? 1)));
                 $dueDate = $_POST['due_date'] ?? null;
                 
-                createAssessment($sectionId, $title, $type, $maxScore, $weight, $dueDate ?: null);
+                createAssessment($sectionId, $title, $type, $maxScore, $weight, $dueDate ?: null, $gradingPeriod);
                 setFlash('success', 'Assessment created successfully.');
             } elseif ($action === 'record_scores') {
                 $assessmentId = intval($_POST['assessment_id'] ?? 0);
@@ -127,6 +128,7 @@ include __DIR__ . '/../../includes/header.php';
                                     </div>
                                     <small>
                                         <span class="badge bg-secondary"><?php echo ucfirst($assessment['type']); ?></span>
+                                        <span class="badge bg-info text-dark"><?php echo sanitize(getGradingPeriods()[(int)($assessment['grading_period'] ?? 1)] ?? '1st Grading'); ?></span>
                                         <?php if ($assessment['due_date']): ?>
                                             Due: <?php echo formatDate($assessment['due_date']); ?>
                                         <?php endif; ?>
@@ -144,7 +146,10 @@ include __DIR__ . '/../../includes/header.php';
                 $selectedAssessment = null;
                 if (isset($_GET['assessment_id'])) {
                     $selectedAssessment = getAssessmentById(intval($_GET['assessment_id']));
-                    $existingScores = getScoresForAssessment($selectedAssessment['id']);
+                    if (!$selectedAssessment || (int)$selectedAssessment['section_id'] !== (int)$sectionId) {
+                        $selectedAssessment = null;
+                    }
+                    $existingScores = $selectedAssessment ? getScoresForAssessment($selectedAssessment['id']) : [];
                     $scoresMap = [];
                     foreach ($existingScores as $score) {
                         $scoresMap[$score['student_id']] = $score;
@@ -243,7 +248,9 @@ include __DIR__ . '/../../includes/header.php';
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Type</label>
                                     <select class="form-select" name="type">
+                                        <option value="module">Module</option>
                                         <option value="quiz">Quiz</option>
+                                        <option value="test">Test</option>
                                         <option value="exam">Exam</option>
                                         <option value="assignment">Assignment</option>
                                         <option value="project">Project</option>
@@ -253,6 +260,14 @@ include __DIR__ . '/../../includes/header.php';
                                     <label class="form-label">Max Score</label>
                                     <input type="number" class="form-control" name="max_score" value="100" min="1" step="0.01">
                                 </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Grading Period</label>
+                                <select class="form-select" name="grading_period" required>
+                                    <?php foreach (getGradingPeriods() as $period => $label): ?>
+                                        <option value="<?php echo $period; ?>"><?php echo sanitize($label); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
