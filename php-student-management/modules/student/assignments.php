@@ -27,7 +27,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Verify student is enrolled in the assignment's section
                 $assignment = getAssignmentById($assignmentId);
-                if ($assignment) {
+                $isEnrolled = false;
+                foreach (getStudentSections($studentId) as $enrolledSection) {
+                    if ((int)$enrolledSection['section_id'] === (int)($assignment['section_id'] ?? 0)) {
+                        $isEnrolled = true;
+                        break;
+                    }
+                }
+                if ($assignment && $isEnrolled && trim($submissionText) !== '') {
                     submitAssignment($assignmentId, $studentId, $submissionText);
                     setFlash('success', 'Assignment submitted successfully.');
                 } else {
