@@ -1,0 +1,173 @@
+%PDF-1.4
+%����
+1 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+3 0 obj
+<< /Length 5628 >>
+stream
+BT
+/F1 8 Tf 0.25 0.32 0.42 rg 48 770 Td (Saorinians Mock-up Presentation | Code Explanation) Tj
+ET
+BT
+/F1 17 Tf 0.05 0.22 0.36 rg 48 742 Td (Saorinians Student Management System) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 717 Td (A presentation-ready explanation of the PHP/MySQL application for Santa Clarita International) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 704 Td (School. This document explains what each code layer does, how data moves through the system, and) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 691 Td (how the role-based modules support school operations.) Tj
+ET
+BT
+/F1 17 Tf 0.05 0.22 0.36 rg 48 665 Td (1. Project Purpose and Architecture) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 640 Td (Saorinians is a server-rendered PHP application backed by MySQL. Users open PHP pages in a) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 627 Td (browser. Each page loads configuration and shared helpers, checks the session and role, reads or) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 614 Td (writes data through PDO prepared statements, then renders Bootstrap-based HTML.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 588 Td (• Presentation flow: Browser -> PHP page -> authentication/authorization -> database helper ->) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 575 Td (  MySQL -> HTML response.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 562 Td (• Main entry points: index.php redirects to login or dashboard; login.php authenticates;) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 549 Td (  register.php creates a pending request; dashboard.php selects a workspace by role.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 536 Td (• Shared layers: config/ stores settings, includes/ stores reusable logic and layout, modules/) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 523 Td (  stores role-specific screens, assets/ stores CSS, JavaScript, and images, uploads/ stores) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 510 Td (  profile images and submitted files.) Tj
+ET
+BT
+/F1 12 Tf 0.06 0.38 0.48 rg 48 497 Td (2. Configuration and Startup Code) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 479 Td (• config/app.php defines BASE_URL, application name/version, upload limits, session timeout,) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 466 Td (  pagination, and date formats. It also creates upload directories when needed.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 453 Td (• config/database.php defines MySQL connection values and creates one PDO connection through) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 440 Td (  the Database singleton. Exceptions are enabled, associative fetches are the default, and) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 427 Td (  emulated prepares are disabled.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 414 Td (• index.php loads the app and auth files, checks isLoggedIn\(\), and redirects to dashboard.php) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 401 Td (  or login.php.) Tj
+ET
+BT
+/F1 17 Tf 0.05 0.22 0.36 rg 48 388 Td (3. Authentication and Security) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 363 Td (includes/auth.php provides the security boundary used by almost every protected screen. login\(\)) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 350 Td (loads a user by username, verifies a password hash with password_verify\(\), and stores user_id,) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 337 Td (username, role, name, and login time in the PHP session.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 311 Td (• isLoggedIn\(\) starts the session, rejects missing user IDs, expires inactive sessions after) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 298 Td (  SESSION_TIMEOUT, and refreshes the activity timestamp.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 285 Td (• requireLogin\(\) redirects unauthenticated visitors. requireAdmin\(\), requireTeacher\(\), and) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 272 Td (  requireStudent\(\) enforce role-specific access before page logic runs.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 259 Td (• logout\(\) clears session values, expires the session cookie, and destroys the session.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 246 Td (• Registration uses CSRF validation, input sanitization, role allow-listing, password length) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 233 Td (  checks, email validation, duplicate checks, and creates an admin-review request instead of) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 220 Td (  immediately creating an account.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 207 Td (• Passwords are stored as hashes. Database queries use PDO prepared statements with bound) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 194 Td (  values, reducing SQL injection risk.) Tj
+ET
+BT
+/F1 17 Tf 0.05 0.22 0.36 rg 48 181 Td (4. Database Layer and Schema) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 156 Td (database.sql creates the student_management database and seeds demo accounts, courses, sections,) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 143 Td (enrollments, and an announcement. The schema separates identity, academic structure, learning) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 130 Td (activity, communication, and uploaded resources.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 104 Td (• Identity: users and user_profiles. One user has one profile; roles are admin, teacher, or) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 91 Td (  student.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 78 Td (• Academic structure: courses -> sections -> enrollments. A section connects a course to an) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 65 Td (  optional teacher and enrolled students.) Tj
+ET
+BT
+/F1 8 Tf 0.45 0.48 0.52 rg 48 32 Td (Saorinians | Page 1) Tj
+ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 1 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 2 0 R >> >> /Contents 3 0 R >>
+endobj
+5 0 obj
+<< /Type /Catalog /Pages 1 0 R >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000015 00000 n 
+0000000072 00000 n 
+0000000142 00000 n 
+0000005822 00000 n 
+0000005948 00000 n 
+trailer
+<< /Size 6 /Root 5 0 R >>
+startxref
+5997
+%%EOF
