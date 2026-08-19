@@ -28,12 +28,15 @@ if (isAdmin()) {
 }
 ?>
 
-<div class="row mb-4">
-    <div class="col-12">
-        <h2 class="mb-0">
-            <i class="bi bi-speedometer2 me-2"></i>Dashboard
-        </h2>
-        <p class="text-muted">Welcome back, <?= sanitize($user['full_name']) ?>!</p>
+<div class="dashboard-hero d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <p class="eyebrow mb-2"><?= ucfirst(sanitize($role)) ?> workspace</p>
+        <h2 class="mb-1"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
+        <p class="text-muted mb-0">Welcome back, <?= sanitize($user['full_name']) ?>. Here is what needs your attention.</p>
+    </div>
+    <div class="dashboard-date text-md-end">
+        <small class="text-muted d-block">Today</small>
+        <strong><?= date('D, M j, Y') ?></strong>
     </div>
 </div>
 
@@ -279,13 +282,13 @@ if (isAdmin()) {
 <!-- Student Quick Actions -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
+        <div class="card dashboard-panel">
             <div class="card-header">
                 <i class="bi bi-lightning me-2"></i>Quick Actions
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-2 col-4 mb-3">
+                <div class="row g-3">
+                    <div class="col-md-2 col-6">
                         <a href="<?= BASE_URL ?>modules/student/schedule.php" class="card quick-action-btn text-decoration-none">
                             <i class="bi bi-calendar-week text-primary"></i>
                             <span>Schedule</span>

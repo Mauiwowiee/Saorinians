@@ -61,6 +61,17 @@ include __DIR__ . '/../../includes/header.php';
                             <?php else: ?>
                                 <p class="text-muted mb-0">No grades yet</p>
                             <?php endif; ?>
+                            <div class="mt-3 text-start">
+                                <small class="text-muted d-block mb-2">Grading periods</small>
+                                <?php foreach (getGradingPeriods() as $period => $label):
+                                    $periodGrade = calculateStudentGrade($studentId, $section['section_id'], $period);
+                                ?>
+                                    <div class="d-flex justify-content-between small border-bottom py-1">
+                                        <span><?php echo sanitize($label); ?></span>
+                                        <strong><?php echo $periodGrade !== null ? $periodGrade . '%' : 'Pending'; ?></strong>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                         <div class="card-footer bg-transparent">
                             <button class="btn btn-sm btn-outline-primary w-100" 

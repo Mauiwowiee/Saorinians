@@ -109,13 +109,18 @@ CREATE TABLE IF NOT EXISTS assessments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     section_id INT NOT NULL,
     title VARCHAR(100) NOT NULL,
-    type ENUM('quiz', 'exam', 'assignment', 'project') NOT NULL,
+    type ENUM('quiz', 'exam', 'assignment', 'project', 'module', 'test') NOT NULL,
+    grading_period TINYINT UNSIGNED NOT NULL DEFAULT 1,
     max_score DECIMAL(5,2) NOT NULL,
     weight DECIMAL(5,2) DEFAULT 1.00,
     due_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
 );
+
+-- Existing installations: apply grading-period support before using the teacher grade screen.
+ALTER TABLE assessments MODIFY COLUMN type ENUM('quiz', 'exam', 'assignment', 'project', 'module', 'test') NOT NULL;
+ALTER TABLE assessments ADD COLUMN IF NOT EXISTS grading_period TINYINT UNSIGNED NOT NULL DEFAULT 1 AFTER type;
 
 -- Student scores table
 CREATE TABLE IF NOT EXISTS student_scores (

@@ -29,6 +29,22 @@ if ($sectionId) {
 $sections = getSectionsByTeacher($teacherId);
 $attendanceSummary = $sectionId ? getAttendanceSummary($sectionId) : [];
 
+if (isset($_GET['export']) && $_GET['export'] === 'csv' && $sectionId) {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="attendance-report-' . $sectionId . '.csv"');
+    $output = fopen('php://output', 'w');
+    fputcsv($output, ['Student Name', 'Present', 'Absent', 'Late', 'Excused', 'Total Classes', 'Attendance %']);
+    foreach ($attendanceSummary as $student) {
+        $totalClasses = (int)($student['total_classes'] ?? 0);
+        $present = (int)($student['present_count'] ?? 0);
+        $late = (int)($student['late_count'] ?? 0);
+        $percentage = $totalClasses > 0 ? round((($present + $late) / $totalClasses) * 100, 1) : 0;
+        fputcsv($output, [$student['full_name'], $present, $student['absent_count'] ?? 0, $late, $student['excused_count'] ?? 0, $totalClasses, $percentage . '%']);
+    }
+    fclose($output);
+    exit;
+}
+
 include __DIR__ . '/../../includes/header.php';
 ?>
 
@@ -57,6 +73,13 @@ include __DIR__ . '/../../includes/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <?php if ($section): ?>
+                    <div class="col-md-6 text-md-end">
+                        <a class="btn btn-outline-success" href="?section_id=<?php echo $sectionId; ?>&export=csv">
+                            <i class="bi bi-download me-2"></i>Export CSV
+                        </a>
+                    </div>
+                <?php endif; ?>
             </form>
         </div>
     </div>

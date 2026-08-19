@@ -250,18 +250,76 @@ main {
     border-color: var(--primary-color);
 }
 
+/* Dashboard and responsive usability */
+.dashboard-hero {
+    padding: 1.25rem 1.5rem;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 0.75rem;
+}
+
+.eyebrow {
+    color: var(--primary-color);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.dashboard-panel .card-header {
+    padding: 1rem 1.25rem;
+}
+
+.dashboard-date {
+    min-width: 9rem;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 768px) {
+    body {
+        overflow-x: hidden;
+    }
+
     .stats-card {
         margin-bottom: 1rem;
+    }
+
+    .dashboard-hero {
+        padding: 1rem;
+    }
+
+    .dashboard-hero h2 {
+        font-size: 1.35rem;
     }
     
     .table-responsive {
         font-size: 0.875rem;
+        border-radius: 0.5rem;
+    }
+
+    .table-responsive .table {
+        min-width: 620px;
     }
     
     .btn-group .btn {
         padding: 0.25rem 0.5rem;
+    }
+
+    .quick-action-btn {
+        min-height: 7rem;
+        padding: 1rem 0.5rem;
+    }
+
+    .quick-action-btn i {
+        font-size: 1.6rem;
+    }
+
+    .modal-dialog {
+        margin: 0.75rem;
+    }
+
+    .card-body {
+        padding: 1rem;
     }
 }
 
