@@ -1,0 +1,176 @@
+%PDF-1.4
+%����
+1 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+3 0 obj
+<< /Length 5048 >>
+stream
+BT
+/F1 8 Tf 0.25 0.32 0.42 rg 48 770 Td (Saorinians | Step-by-Step User and Setup Guide) Tj
+ET
+BT
+/F1 17 Tf 0.05 0.22 0.36 rg 48 742 Td (Saorinians Step-by-Step Guide) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 717 Td (Use this guide during the mock-up demonstration to install the system, sign in with demo users,) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 704 Td (and walk through the three role experiences.) Tj
+ET
+BT
+/F1 17 Tf 0.05 0.22 0.36 rg 48 678 Td (A. Requirements) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 653 Td (• A local PHP server such as XAMPP, WAMP, MAMP, or a PHP Apache/MySQL setup.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 640 Td (• PHP with PDO MySQL enabled, MySQL/MariaDB, and a browser.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 627 Td (• Place the php-student-management folder inside the web server document root, commonly) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 614 Td (  htdocs.) Tj
+ET
+BT
+/F1 17 Tf 0.05 0.22 0.36 rg 48 601 Td (B. Installation) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 576 Td (• 1. Copy the project folder into the web root.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 563 Td (• 2. Start Apache and MySQL from the local server control panel.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 550 Td (• 3. Open phpMyAdmin or MySQL CLI.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 537 Td (• 4. Import php-student-management/database.sql. It creates the student_management database,) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 524 Td (  tables, foreign keys, and sample data.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 511 Td (• 5. Open config/database.php and confirm DB_HOST=localhost, DB_NAME=student_management,) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 498 Td (  DB_USER=root, and the password matches the local MySQL setup.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 485 Td (• 6. Open config/app.php and confirm BASE_URL matches the folder URL, normally) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 472 Td (  http://localhost/php-student-management/.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 459 Td (• 7. Visit the BASE_URL in a browser. index.php redirects to login.php.) Tj
+ET
+BT
+/F1 17 Tf 0.05 0.22 0.36 rg 48 446 Td (C. Demo Accounts) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 421 Td (• Administrator: username admin, password admin123.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 408 Td (• Teacher: username teacher1, password password123. A second teacher is teacher2.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 395 Td (• Student: username student1, password password123. Students student2 and student3 are also) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 382 Td (  seeded.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 369 Td (• For a real deployment, change demo passwords immediately and do not expose database) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 356 Td (  credentials in public source control.) Tj
+ET
+BT
+/F1 17 Tf 0.05 0.22 0.36 rg 48 343 Td (D. Login and Navigation) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 318 Td (• 1. Enter username and password on login.php.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 305 Td (• 2. Select Sign In. login\(\) verifies the stored password hash.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 292 Td (• 3. The system writes role and user information into the session.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 279 Td (• 4. dashboard.php reads the role and loads the matching workspace.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 266 Td (• 5. Use the navigation bar or dashboard quick actions to open modules.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 253 Td (• 6. Select Logout when finished.) Tj
+ET
+BT
+/F1 17 Tf 0.05 0.22 0.36 rg 48 240 Td (E. Administrator Walkthrough) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 215 Td (• 1. Sign in as admin.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 202 Td (• 2. Open Manage Users to add, edit, or remove users and review profile details.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 189 Td (• 3. Open Registrations to approve or reject teacher/student requests submitted through) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 176 Td (  register.php.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 163 Td (• 4. Create or update a course in Manage Courses.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 150 Td (• 5. Create a section in Manage Sections, choose a course, teacher, room, schedule, and) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 137 Td (  capacity.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 124 Td (• 6. Open Section Students or Enrollments to place students in the section.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 111 Td (• 7. Open Announcements, add a title and message, then choose the audience.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 98 Td (• 8. Open Teacher Workload or Teacher Sections to verify teaching assignments.) Tj
+ET
+BT
+/F1 9.3 Tf 0.12 0.14 0.17 rg 48 85 Td (• 9. Use Messages and Profile for communication and account maintenance.) Tj
+ET
+BT
+/F1 17 Tf 0.05 0.22 0.36 rg 48 72 Td (F. Teacher Walkthrough) Tj
+ET
+BT
+/F1 8 Tf 0.45 0.48 0.52 rg 48 32 Td (Saorinians | Page 1) Tj
+ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 1 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 2 0 R >> >> /Contents 3 0 R >>
+endobj
+5 0 obj
+<< /Type /Catalog /Pages 1 0 R >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000015 00000 n 
+0000000072 00000 n 
+0000000142 00000 n 
+0000005242 00000 n 
+0000005368 00000 n 
+trailer
+<< /Size 6 /Root 5 0 R >>
+startxref
+5417
+%%EOF
