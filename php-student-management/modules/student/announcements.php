@@ -17,16 +17,17 @@ $studentId = getCurrentUserId();
 $sections = getStudentSections($studentId);
 $sectionIds = array_column($sections, 'section_id');
 
-// Get announcements (general + section-specific)
-$announcements = getAnnouncements('student', null, 50);
-
-// Filter to show only relevant announcements
-$filteredAnnouncements = [];
-foreach ($announcements as $ann) {
-    if ($ann['section_id'] === null || in_array($ann['section_id'], $sectionIds)) {
-        $filteredAnnouncements[] = $ann;
-    }
+// Fetch general announcements plus announcements for each enrolled section.
+$filteredAnnouncements = getAnnouncements('student', null, 50);
+foreach ($sectionIds as $sectionId) {
+    $filteredAnnouncements = array_merge($filteredAnnouncements, getAnnouncements('student', $sectionId, 50));
 }
+$uniqueAnnouncements = [];
+foreach ($filteredAnnouncements as $announcement) {
+    $uniqueAnnouncements[$announcement['id']] = $announcement;
+}
+$filteredAnnouncements = array_values($uniqueAnnouncements);
+usort($filteredAnnouncements, static fn($a, $b) => strcmp($b['created_at'], $a['created_at']));
 
 include __DIR__ . '/../../includes/header.php';
 ?>

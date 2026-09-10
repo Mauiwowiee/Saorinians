@@ -54,6 +54,7 @@ include __DIR__ . '/../../includes/header.php';
                             <h5 class="card-title mb-0"><?php echo sanitize($section['course_code']); ?></h5>
                             <small class="text-muted"><?php echo sanitize($section['course_name']); ?></small>
                         </div>
+                        <?php $breakdown = getStudentGradeBreakdown($studentId, $section['section_id']); ?>
                         <div class="card-body text-center">
                             <div class="display-4 text-<?php echo $gradeColor; ?> mb-2"><?php echo $letterGrade; ?></div>
                             <?php if ($percentage !== null): ?>
@@ -61,6 +62,15 @@ include __DIR__ . '/../../includes/header.php';
                             <?php else: ?>
                                 <p class="text-muted mb-0">No grades yet</p>
                             <?php endif; ?>
+                            <div class="mt-3 text-start">
+                                <small class="text-muted d-block mb-2">Final grade breakdown</small>
+                                <?php foreach ([['written_works', 'Written Works', 30], ['performance_tasks', 'Performance Tasks', 40], ['quarterly_assessment', 'Quarterly Assessment', 20], ['attendance', 'Attendance', 10]] as [$key, $label, $weight]): ?>
+                                    <div class="d-flex justify-content-between small border-bottom py-1">
+                                        <span><?= sanitize($label) ?> <span class="text-muted">(<?= $weight ?>%)</span></span>
+                                        <strong><?= $breakdown[$key] !== null ? $breakdown[$key] . '%' : 'Pending' ?></strong>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
                             <div class="mt-3 text-start">
                                 <small class="text-muted d-block mb-2">Grading periods</small>
                                 <?php foreach (getGradingPeriods() as $period => $label):

@@ -37,11 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $title = sanitize($_POST['title'] ?? '');
                 $type = sanitize($_POST['type'] ?? 'quiz');
                 $maxScore = floatval($_POST['max_score'] ?? 100);
-                $weight = floatval($_POST['weight'] ?? 1);
                 $gradingPeriod = max(1, min(4, intval($_POST['grading_period'] ?? 1)));
                 $dueDate = $_POST['due_date'] ?? null;
                 
-                createAssessment($sectionId, $title, $type, $maxScore, $weight, $dueDate ?: null, $gradingPeriod);
+                createAssessment($sectionId, $title, $type, $maxScore, $dueDate ?: null, $gradingPeriod);
                 setFlash('success', 'Assessment created successfully.');
             } elseif ($action === 'record_scores') {
                 $assessmentId = intval($_POST['assessment_id'] ?? 0);
@@ -162,7 +161,7 @@ include __DIR__ . '/../../includes/header.php';
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <div>
                                 <h5 class="mb-0"><?php echo sanitize($selectedAssessment['title']); ?></h5>
-                                <small class="text-muted">Max Score: <?php echo $selectedAssessment['max_score']; ?> | Weight: <?php echo $selectedAssessment['weight']; ?></small>
+                                <small class="text-muted">Max Score: <?php echo $selectedAssessment['max_score']; ?> | Category: <?php echo sanitize(getAssessmentCategoryLabel($selectedAssessment['type'])); ?></small>
                             </div>
                             <form method="POST" class="d-inline" onsubmit="return confirm('Delete this assessment?');">
                                 <?php echo csrfField(); ?>
@@ -270,10 +269,6 @@ include __DIR__ . '/../../includes/header.php';
                                 </select>
                             </div>
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Weight</label>
-                                    <input type="number" class="form-control" name="weight" value="1" min="0.01" step="0.01">
-                                </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Due Date</label>
                                     <input type="date" class="form-control" name="due_date">

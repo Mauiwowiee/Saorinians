@@ -712,10 +712,10 @@ function rejectRegistration($requestId, $adminId, $notes = null) {
 /**
  * Create assessment
  */
-function createAssessment($sectionId, $title, $type, $maxScore, $weight, $dueDate = null, $gradingPeriod = 1) {
+function createAssessment($sectionId, $title, $type, $maxScore, $dueDate = null, $gradingPeriod = 1) {
     $db = getDB();
-    $stmt = $db->prepare("INSERT INTO assessments (section_id, title, type, grading_period, max_score, weight, due_date) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$sectionId, $title, $type, $gradingPeriod, $maxScore, $weight, $dueDate]);
+    $stmt = $db->prepare("INSERT INTO assessments (section_id, title, type, grading_period, max_score, due_date) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$sectionId, $title, $type, $gradingPeriod, $maxScore, $dueDate]);
     return $db->lastInsertId();
 }
 
@@ -746,10 +746,10 @@ function getAssessmentById($id) {
 /**
  * Update assessment
  */
-function updateAssessment($id, $title, $type, $maxScore, $weight, $dueDate) {
+function updateAssessment($id, $title, $type, $maxScore, $dueDate) {
     $db = getDB();
-    $stmt = $db->prepare("UPDATE assessments SET title = ?, type = ?, max_score = ?, weight = ?, due_date = ? WHERE id = ?");
-    return $stmt->execute([$title, $type, $maxScore, $weight, $dueDate, $id]);
+    $stmt = $db->prepare("UPDATE assessments SET title = ?, type = ?, max_score = ?, due_date = ? WHERE id = ?");
+    return $stmt->execute([$title, $type, $maxScore, $dueDate, $id]);
 }
 
 /**
@@ -793,9 +793,10 @@ function getStudentScoresBySection($studentId, $sectionId) {
     $stmt = $db->prepare("SELECT a.*, ss.score, ss.remarks, ss.submitted_at 
                           FROM assessments a 
                           LEFT JOIN student_scores ss ON a.id = ss.assessment_id AND ss.student_id = ? 
-                          WHERE a.section_id = ? 
+                          WHERE a.section_id = ?
+                            AND EXISTS (SELECT 1 FROM enrollments e WHERE e.student_id = ? AND e.section_id = a.section_id AND e.status = 'enrolled')
                           ORDER BY a.due_date DESC");
-    $stmt->execute([$studentId, $sectionId]);
+    $stmt->execute([$studentId, $sectionId, $studentId]);
     return $stmt->fetchAll();
 }
 
@@ -823,22 +824,33 @@ function getAttendancePercentage($studentId, $sectionId, $gradingPeriod = null) 
     return ((int)$result['total'] > 0) ? round(((int)$result['attended'] / (int)$result['total']) * 100, 2) : null;
 }
 
+function getAssessmentCategoryLabel($type) {
+    return in_array($type, ['quiz', 'test', 'module'], true) ? 'Written Works' : (in_array($type, ['assignment', 'project'], true) ? 'Performance Tasks' : 'Quarterly Assessment');
+}
+
 function getStudentGradeBreakdown($studentId, $sectionId, $gradingPeriod = 1) {
     $db = getDB();
-    $types = ['module' => 20, 'assignment' => 20, 'quiz' => 30, 'test' => 40, 'exam' => 40, 'project' => 20];
-    $breakdown = ['attendance' => getAttendancePercentage($studentId, $sectionId, $gradingPeriod), 'module' => null, 'quiz' => null, 'test' => null, 'overall' => null];
-    foreach (['module', 'quiz', 'test'] as $component) {
-        $dbTypes = $component === 'test' ? ['test', 'exam'] : [$component, $component === 'module' ? 'assignment' : $component];
-        $placeholders = implode(',', array_fill(0, count($dbTypes), '?'));
-        $stmt = $db->prepare("SELECT SUM(ss.score * a.weight) weighted_score, SUM(a.max_score * a.weight) weighted_max FROM assessments a LEFT JOIN student_scores ss ON a.id = ss.assessment_id AND ss.student_id = ? WHERE a.section_id = ? AND a.grading_period = ? AND a.type IN ($placeholders)");
-        $stmt->execute(array_merge([$studentId, $sectionId, $gradingPeriod], $dbTypes));
-        $row = $stmt->fetch();
-        $breakdown[$component] = ($row['weighted_max'] > 0) ? round(($row['weighted_score'] / $row['weighted_max']) * 100, 2) : null;
+    $categories = [
+        'written_works' => ['label' => 'Written Works', 'weight' => 30, 'types' => ['quiz', 'test', 'module']],
+        'performance_tasks' => ['label' => 'Performance Tasks', 'weight' => 40, 'types' => ['assignment', 'project']],
+        'quarterly_assessment' => ['label' => 'Quarterly Assessment', 'weight' => 20, 'types' => ['exam']],
+    ];
+    $breakdown = ['attendance' => getAttendancePercentage($studentId, $sectionId, $gradingPeriod), 'written_works' => null, 'performance_tasks' => null, 'quarterly_assessment' => null, 'overall' => null];
+
+    foreach ($categories as $key => $category) {
+        $placeholders = implode(',', array_fill(0, count($category['types']), '?'));
+        $stmt = $db->prepare("SELECT AVG(CASE WHEN a.max_score > 0 AND ss.score IS NOT NULL THEN (ss.score / a.max_score) * 100 END) AS percentage FROM assessments a LEFT JOIN student_scores ss ON a.id = ss.assessment_id AND ss.student_id = ? WHERE a.section_id = ? AND a.grading_period = ? AND a.type IN ($placeholders)");
+        $stmt->execute(array_merge([$studentId, $sectionId, $gradingPeriod], $category['types']));
+        $value = $stmt->fetchColumn();
+        $breakdown[$key] = $value !== false && $value !== null ? round((float) $value, 2) : null;
     }
-    $weighted = [['attendance', 10], ['module', 20], ['quiz', 30], ['test', 40]];
-    $total = 0; $weight = 0;
-    foreach ($weighted as [$key, $value]) { if ($breakdown[$key] !== null) { $total += $breakdown[$key] * $value; $weight += $value; } }
-    $breakdown['overall'] = $weight > 0 ? round($total / $weight, 2) : null;
+
+    $weightedTotal = 0;
+    $availableWeight = 0;
+    foreach ([['attendance', 10], ['written_works', 30], ['performance_tasks', 40], ['quarterly_assessment', 20]] as [$key, $weight]) {
+        if ($breakdown[$key] !== null) { $weightedTotal += $breakdown[$key] * $weight; $availableWeight += $weight; }
+    }
+    $breakdown['overall'] = $availableWeight > 0 ? round($weightedTotal / $availableWeight, 2) : null;
     return $breakdown;
 }
 
@@ -963,8 +975,9 @@ function getStudentAssignments($studentId, $sectionId) {
                           FROM assignments a
                           LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.student_id = ?
                           WHERE a.section_id = ?
+                            AND EXISTS (SELECT 1 FROM enrollments e WHERE e.student_id = ? AND e.section_id = a.section_id AND e.status = 'enrolled')
                           ORDER BY a.due_date DESC");
-    $stmt->execute([$studentId, $sectionId]);
+    $stmt->execute([$studentId, $sectionId, $studentId]);
     return $stmt->fetchAll();
 }
 

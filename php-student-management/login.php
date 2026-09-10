@@ -92,8 +92,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <hr>
             
-            <div class="text-center mb-3">
-                <p class="mb-0">Don't have an account? <a href="<?= BASE_URL ?>register.php" class="text-decoration-none fw-bold">Register here</a></p>
+            <div class="alert alert-info small mb-3">
+                <i class="bi bi-info-circle me-1"></i>
+                Accounts are created by the school administrator.
             </div>
             
             <hr>
