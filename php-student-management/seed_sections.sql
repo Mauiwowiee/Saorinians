@@ -22,13 +22,13 @@ WITH RECURSIVE numbers AS (
     UNION ALL
     SELECT number + 1 FROM numbers WHERE number < 45
 ), section_names AS (
-    SELECT 'rizal' AS section_key, 'Rizal' AS section_label
+    SELECT 'Rizal' AS section_label, 0 AS number_offset
     UNION ALL
-    SELECT 'mabini', 'Mabini'
+    SELECT 'Mabini', 45
 )
 SELECT
-    CONCAT(section_key, '_student_', LPAD(number, 2, '0')),
-    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    CONCAT('04-2324-', LPAD(number + number_offset, 5, '0')),
+    '$2b$10$tzRlFWwoRyMIiuLUwSqZsuU4m/0zne5dHxy8Z7DtQNNtIYmmSUnnS',
     'student',
     CASE
         WHEN MOD(number, 2) = 1 THEN CONCAT(
@@ -47,20 +47,19 @@ FROM numbers CROSS JOIN section_names;
 INSERT IGNORE INTO user_profiles (user_id, email)
 SELECT id, CONCAT(username, '@school.edu')
 FROM users
-WHERE username LIKE 'rizal_student_%' OR username LIKE 'mabini_student_%';
+WHERE username LIKE '04-2324-%';
 
 INSERT IGNORE INTO enrollments (student_id, section_id)
 SELECT u.id, s.id
 FROM users u
 JOIN sections s
   ON s.section_name = CASE
-      WHEN u.username LIKE 'rizal_student_%' THEN 'Rizal'
-      WHEN u.username LIKE 'mabini_student_%' THEN 'Mabini'
+      WHEN CAST(SUBSTRING(u.username, 9) AS UNSIGNED) BETWEEN 1 AND 45 THEN 'Rizal'
+      WHEN CAST(SUBSTRING(u.username, 9) AS UNSIGNED) BETWEEN 46 AND 90 THEN 'Mabini'
      END
  AND s.course_id = 1
-WHERE u.username LIKE 'rizal_student_%' OR u.username LIKE 'mabini_student_%';
+WHERE u.username LIKE '04-2324-%';
 
 -- Login for all generated students:
--- username: rizal_student_01 through rizal_student_45
---           mabini_student_01 through mabini_student_45
--- password: password123
+-- usernames: 04-2324-00001 through 04-2324-00090
+-- password: student1
