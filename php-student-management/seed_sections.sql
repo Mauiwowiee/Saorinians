@@ -39,6 +39,11 @@ SELECT
                 'Leandro', 'Maverick', 'Ezekiel', 'Cian', 'Alonzo', 'Kian', 'Jaden', 'Zayn', 'Miguel', 'Marco',
                 'Gabriel', 'Angelo', 'Paolo', 'Renz', 'Luis'),
             ' ',
+            ELT(1 + FLOOR((number - 1) / 2),
+                'Andrei', 'Beau', 'Cielo', 'Dane', 'Elio', 'Finn', 'Gio', 'Hiro', 'Ivan', 'Jace',
+                'Kai', 'Luis', 'Mavi', 'Noel', 'Owen', 'Pio', 'Quin', 'Renz', 'Seth', 'Toby',
+                'Uli', 'Vince', 'Wes', 'Xander', 'Yuri', 'Zeke'),
+            ' ',
             ELT(1 + FLOOR((number - 1) / 2) + IF(section_label = 'Mabini', 0, 45),
                 'Santos', 'Reyes', 'Cruz', 'Garcia', 'Mendoza', 'Torres', 'Flores', 'Navarro', 'Castillo', 'Ramos',
                 'Aquino', 'Bautista', 'Rivera', 'Villanueva', 'Gonzales', 'Fernandez', 'Manalo', 'Santiago', 'Magsaysay', 'Dizon',
@@ -49,7 +54,6 @@ SELECT
                 'Pangilinan', 'Alcantara', 'Tuason', 'Concepcion', 'Banzon', 'Balmaceda', 'Araneta', 'Legaspi', 'Dela Pena', 'Mariano',
                 'Enriquez', 'Fajardo', 'Ilagan', 'Javier', 'Kasilag', 'Lorenzo', 'Malvar', 'Nolasco', 'Ortega', 'Peralta',
                 'Quezon', 'Regalado', 'Sevilla', 'Tejada', 'Umali', 'Villar', 'Ylagan', 'Zamora', 'Alvarez', 'Briones'),
-            ' ', section_label
         )
         ELSE CONCAT(
             ELT(1 + FLOOR((number - 2) / 2),
@@ -58,6 +62,11 @@ SELECT
                 'Quinn', 'Raina', 'Samara', 'Talia', 'Una', 'Valerie', 'Wynter', 'Yasmin', 'Zara', 'Alyssa',
                 'Brielle', 'Cheska', 'Diana', 'Eloise', 'Fiona', 'Giselle', 'Isabelle', 'Jasmine', 'Kiara', 'Liana',
                 'Mikaela', 'Nica', 'Odessa', 'Pia', 'Reese'),
+            ' ',
+            ELT(1 + FLOOR((number - 2) / 2),
+                'Ari', 'Belle', 'Claire', 'Dani', 'Elle', 'Faye', 'Gia', 'Hope', 'Iris', 'Jade',
+                'Kaye', 'Lia', 'Mae', 'Nell', 'Oona', 'Pearl', 'Quinn', 'Rae', 'Skye', 'Tess',
+                'Uma', 'Vera', 'Wren', 'Xia', 'Ysa', 'Zia'),
             ' ',
             ELT(1 + FLOOR((number - 2) / 2) + IF(section_label = 'Mabini', 0, 45),
                 'Dela Cruz', 'De Guzman', 'De Vera', 'Dela Rosa', 'Serrano', 'Mariano', 'Abad', 'Alvarez', 'Arceo', 'Bello',
@@ -69,7 +78,6 @@ SELECT
                 'Cayanan', 'Dimaculangan', 'Gatchalian', 'Hilario', 'Imperial', 'Labrador', 'Macaraig', 'Mallari', 'Ocampo', 'Pascual',
                 'Ramos', 'Sarmiento', 'Tanyag', 'Tupas', 'Velasco', 'Villareal', 'Yumul', 'Zabala', 'Zarate', 'Aguirre',
                 'Arellano', 'Bautista', 'Cortez', 'Dumlao', 'Estrella', 'Flores', 'Gonzales', 'Limpin', 'Magsino', 'Manrique'),
-            ' ', section_label
         )
     END
 FROM numbers CROSS JOIN section_names;
