@@ -221,6 +221,22 @@ CREATE TABLE IF NOT EXISTS assignment_submissions (
     UNIQUE KEY unique_submission (assignment_id, student_id)
 );
 
+-- Student fees and payment balances
+CREATE TABLE IF NOT EXISTS student_fees (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    section_id INT NOT NULL,
+    fee_type VARCHAR(100) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    paid_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    due_date DATE NOT NULL,
+    status ENUM('unpaid', 'partial', 'paid') NOT NULL DEFAULT 'unpaid',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_student_fee (student_id, section_id, fee_type)
+);
+
 -- Insert default admin user (password: admin123)
 INSERT INTO users (username, password, role, full_name) VALUES 
 ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'System Administrator');
