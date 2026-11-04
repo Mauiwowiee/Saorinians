@@ -16,13 +16,21 @@ CREATE TABLE IF NOT EXISTS student_fees (
     UNIQUE KEY unique_student_fee (student_id, section_id, fee_type)
 );
 
--- Detailed class timetable for Rizal and Mabini.
+-- Subject schedules shown on the student dashboard.
+UPDATE sections SET schedule_time = CASE section_name
+    WHEN 'Rizal' THEN 'Math (Mon 8:00-9:00 AM) | Science (Mon 9:00-10:00 AM) | PE (Tue 8:00-9:00 AM) | English (Wed 8:00-9:00 AM) | Filipino (Thu 8:00-9:00 AM)'
+    WHEN 'Mabini' THEN 'Math (Mon 9:00-10:00 AM) | Science (Mon 10:00-11:00 AM) | PE (Tue 9:00-10:00 AM) | English (Wed 9:00-10:00 AM) | Filipino (Thu 9:00-10:00 AM)'
+END
+WHERE section_name IN ('Rizal', 'Mabini') AND course_id = 1;
+
 INSERT IGNORE INTO schedules (section_id, day_of_week, start_time, end_time)
 SELECT s.id, days.day_of_week, days.start_time, days.end_time
 FROM sections s
 CROSS JOIN (
     SELECT 'monday' AS day_of_week, '08:00:00' AS start_time, '09:00:00' AS end_time
+    UNION ALL     SELECT 'tuesday', '08:00:00', '09:00:00'
     UNION ALL SELECT 'wednesday', '08:00:00', '09:00:00'
+    UNION ALL SELECT 'thursday', '08:00:00', '09:00:00'
     UNION ALL SELECT 'friday', '08:00:00', '09:00:00'
 ) days
 WHERE s.section_name = 'Rizal' AND s.course_id = 1;
@@ -32,8 +40,9 @@ SELECT s.id, days.day_of_week, days.start_time, days.end_time
 FROM sections s
 CROSS JOIN (
     SELECT 'tuesday' AS day_of_week, '09:00:00' AS start_time, '10:00:00' AS end_time
+    UNION ALL     SELECT 'wednesday', '09:00:00', '10:00:00'
     UNION ALL SELECT 'thursday', '09:00:00', '10:00:00'
-    UNION ALL SELECT 'saturday', '09:00:00', '10:00:00'
+    UNION ALL SELECT 'friday', '09:00:00', '10:00:00'
 ) days
 WHERE s.section_name = 'Mabini' AND s.course_id = 1;
 
