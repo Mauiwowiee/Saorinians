@@ -119,8 +119,6 @@ CREATE TABLE IF NOT EXISTS assessments (
 );
 
 -- Existing installations: apply grading-period support before using the teacher grade screen.
-ALTER TABLE assessments MODIFY COLUMN type ENUM('quiz', 'exam', 'assignment', 'project', 'module', 'test') NOT NULL;
-ALTER TABLE assessments ADD COLUMN IF NOT EXISTS grading_period TINYINT UNSIGNED NOT NULL DEFAULT 1 AFTER type;
 
 -- Student scores table
 CREATE TABLE IF NOT EXISTS student_scores (
@@ -238,40 +236,40 @@ CREATE TABLE IF NOT EXISTS student_fees (
 );
 
 -- Insert default admin user (password: admin123)
-INSERT INTO users (username, password, role, full_name) VALUES 
+INSERT IGNORE INTO users (username, password, role, full_name) VALUES 
 ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'System Administrator');
 
 -- Insert sample teachers (password: password123)
-INSERT INTO users (username, password, role, full_name) VALUES 
+INSERT IGNORE INTO users (username, password, role, full_name) VALUES 
 ('teacher1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'John Smith'),
 ('teacher2', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher', 'Jane Doe');
 
 -- Insert sample students (password: password123)
-INSERT INTO users (username, password, role, full_name) VALUES 
+INSERT IGNORE INTO users (username, password, role, full_name) VALUES 
 ('student1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'Alice Johnson'),
 ('student2', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'Bob Williams'),
 ('student3', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', 'Charlie Brown');
 
 -- Create user profiles for all users
-INSERT INTO user_profiles (user_id, email) 
+INSERT IGNORE INTO user_profiles (user_id, email) 
 SELECT id, CONCAT(username, '@school.edu') FROM users;
 
 -- Insert sample courses
-INSERT INTO courses (course_code, course_name, description, credits) VALUES 
+INSERT IGNORE INTO courses (course_code, course_name, description, credits) VALUES 
 ('CS101', 'Introduction to Programming', 'Basic programming concepts using Python', 3),
 ('CS102', 'Data Structures', 'Arrays, linked lists, trees, and graphs', 4),
 ('MATH101', 'Calculus I', 'Limits, derivatives, and integrals', 4),
 ('ENG101', 'English Composition', 'Academic writing and critical thinking', 3);
 
 -- Insert sample sections
-INSERT INTO sections (section_name, course_id, teacher_id, room_number, schedule_time) VALUES 
+INSERT IGNORE INTO sections (section_name, course_id, teacher_id, room_number, schedule_time) VALUES 
 ('Section-A', 1, 2, 'Room 101', 'MWF 9:00-10:00 AM'),
 ('Section-B', 1, 3, 'Room 102', 'TTH 10:00-11:30 AM'),
 ('Section-A', 2, 2, 'Room 201', 'MWF 11:00-12:00 PM'),
 ('Section-A', 3, 3, 'Room 301', 'TTH 2:00-3:30 PM');
 
 -- Insert sample enrollments
-INSERT INTO enrollments (student_id, section_id) VALUES 
+INSERT IGNORE INTO enrollments (student_id, section_id) VALUES 
 (4, 1), (5, 1), (6, 1),
 (4, 3), (5, 2), (6, 4);
 
