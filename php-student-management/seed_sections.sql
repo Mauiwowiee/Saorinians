@@ -53,7 +53,7 @@ SELECT
                 'Luna', 'Manansala', 'Esguerra', 'Guevarra', 'Buan', 'Cabrera', 'Sison', 'Yulo', 'Abad', 'Quinto',
                 'Pangilinan', 'Alcantara', 'Tuason', 'Concepcion', 'Banzon', 'Balmaceda', 'Araneta', 'Legaspi', 'Dela Pena', 'Mariano',
                 'Enriquez', 'Fajardo', 'Ilagan', 'Javier', 'Kasilag', 'Lorenzo', 'Malvar', 'Nolasco', 'Ortega', 'Peralta',
-                'Quezon', 'Regalado', 'Sevilla', 'Tejada', 'Umali', 'Villar', 'Ylagan', 'Zamora', 'Alvarez', 'Briones'),
+                'Quezon', 'Regalado', 'Sevilla', 'Tejada', 'Umali', 'Villar', 'Ylagan', 'Zamora', 'Alvarez', 'Briones')
         )
         ELSE CONCAT(
             ELT(1 + FLOOR((number - 2) / 2) + IF(section_label = 'Mabini', 23, 0),
@@ -77,7 +77,7 @@ SELECT
                 'Vergara', 'Vicente', 'Yap', 'Zamora', 'Zaragoza', 'Agustin', 'Baldonado', 'Basilio', 'Bonifacio', 'Buenaventura',
                 'Cayanan', 'Dimaculangan', 'Gatchalian', 'Hilario', 'Imperial', 'Labrador', 'Macaraig', 'Mallari', 'Ocampo', 'Pascual',
                 'Ramos', 'Sarmiento', 'Tanyag', 'Tupas', 'Velasco', 'Villareal', 'Yumul', 'Zabala', 'Zarate', 'Aguirre',
-                'Arellano', 'Bautista', 'Cortez', 'Dumlao', 'Estrella', 'Flores', 'Gonzales', 'Limpin', 'Magsino', 'Manrique'),
+                'Arellano', 'Bautista', 'Cortez', 'Dumlao', 'Estrella', 'Flores', 'Gonzales', 'Limpin', 'Magsino', 'Manrique')
         )
     END
 FROM numbers CROSS JOIN section_names;
