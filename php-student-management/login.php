@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <strong>Demo Credentials:</strong><br>
                     Admin: admin / admin123<br>
                     Teacher: teacher1 / password123<br>
-                    Student: student1 / password123
+                    Student: 04-2324-00001 / student1
                 </small>
             </div>
         </div>

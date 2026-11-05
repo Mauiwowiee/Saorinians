@@ -23,6 +23,7 @@ function login($username, $password) {
     
     if ($user && password_verify($password, $user['password'])) {
         initSession();
+        session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];
