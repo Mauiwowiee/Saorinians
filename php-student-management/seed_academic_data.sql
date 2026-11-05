@@ -68,6 +68,33 @@ WHERE s.section_name IN ('Rizal', 'Mabini') AND s.course_id = 1
       WHERE old.section_id = s.id AND old.title = a.title
   );
 
+-- Subject assessments and grades for every enrolled student.
+INSERT INTO assignments (section_id, title, description, due_date, max_points, created_by)
+SELECT s.id, subject.title, CONCAT(subject.title, ' performance assessment'), '2026-12-10 23:59:00', 100,
+       (SELECT id FROM users WHERE username = 'teacher1' LIMIT 1)
+FROM sections s
+CROSS JOIN (
+    SELECT 'Math' AS title
+    UNION ALL SELECT 'Science'
+    UNION ALL SELECT 'PE'
+    UNION ALL SELECT 'English'
+    UNION ALL SELECT 'Filipino'
+) subject
+WHERE s.section_name IN ('Rizal', 'Mabini') AND s.course_id = 1
+  AND NOT EXISTS (
+      SELECT 1 FROM assignments old
+      WHERE old.section_id = s.id AND old.title = subject.title
+  );
+
+INSERT IGNORE INTO assignment_submissions (assignment_id, student_id, submission_text, submitted_at, grade, feedback, graded_at)
+SELECT a.id, u.id, CONCAT(a.title, ' assessment submitted'), '2026-11-05 12:00:00',
+       82 + MOD(u.id + a.id, 16), 'Recorded grade', '2026-11-06 12:00:00'
+FROM assignments a
+JOIN sections s ON s.id = a.section_id AND s.section_name IN ('Rizal', 'Mabini') AND s.course_id = 1
+JOIN enrollments e ON e.section_id = s.id AND e.status = 'enrolled'
+JOIN users u ON u.id = e.student_id AND u.username LIKE '04-2324-%'
+WHERE a.title IN ('Math', 'Science', 'PE', 'English', 'Filipino');
+
 -- Sample tuition fee records for all 90 generated students.
 INSERT INTO student_fees (student_id, section_id, fee_type, amount, paid_amount, due_date, status)
 SELECT u.id, e.section_id, 'Tuition Fee', 12500.00, 5000.00, '2026-11-30', 'partial'
